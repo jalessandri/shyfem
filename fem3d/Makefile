@@ -279,7 +279,7 @@ OUSOBJS = subous.o ousutil.o genutil.o elabutil.o ouselab1.o
 SHYOBJS = subous.o ousutil.o subnos.o nosutil.o subeos.o genutil.o elabutil.o \
 		noselab1.o ouselab1.o subext.o extelab1.o \
 		shyelab1.o subshy.o subshyutil.o \
-		subflx.o flxelab1.o
+		subflx.o flxelab1.o shyutil.o
 ETSOBJS = subets.o etsutil.o genutil.o subetsm.o
 NOSOUSOBJS = subnos.o nosutil.o subous.o ousutil.o subets.o etsutil.o \
 		genutil.o
