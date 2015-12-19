@@ -510,11 +510,12 @@
 !***************************************************************
 !***************************************************************
 
-	subroutine read_records(id,dtime,nvar,nndim,nlvddi,nkn,nel
-     +				,ivars,cv3,cv3all,znv,zenv,ierr)
+	subroutine read_records(id,dtime,nvar,nndim,nlvddi
+     +				,ivars,cv3,cv3all,ierr)
 
 	use elabutil
 	use shyfile
+	use shyutil
 
 	implicit none
 
@@ -526,8 +527,6 @@
 	integer ivars(4,nvar)
 	real cv3(nlvddi,nndim)
 	real cv3all(nlvddi,nndim,0:nvar)
-	real znv(nkn)
-	real zenv(3*nel)
 	integer ierr
 
 	integer nexp
@@ -560,18 +559,19 @@
           if( ierr .ne. 0 ) exit
 	  if( bfirst ) dtvar = dtime
 	  if( dtvar /= dtime ) goto 85
-	  ivars(4,i) = ivar
+	  ivars(4,iv) = ivar
 	  cv3all(:,:,iv) = cv3(:,:) * fact
 	  if( abs(ivar) == 1 ) then		! water level
 	    if( ivar == -1 .or. iv == 1 ) then
-	      znv = cv3(1,1:nkn)
+	      znv = cv3(1,1:n)
 	    else
-	      zenv = cv3(1,1:3*nel)
+	      !zenv = cv3(1,1:3*n)
+	      zenv = reshape(cv3(1,1:3*n),(/3,n/))	!FIXME
 	    end if
 	  end if
 	end do
 
-	if( ierr /= 0 .and. i .ne. 1 ) goto 76
+	if( ierr /= 0 .and. iv .ne. 1 ) goto 76
 
 	return
    74	continue
@@ -584,7 +584,7 @@
         write(6,*) 'end of file between variables'
 	stop 'error stop shyelab: EOF unexpected'
    85	continue
-	write(6,*) 'dtime,dtvar,i,ivar,nvar: ',dtime,dtvar,i,ivar,nvar
+	write(6,*) 'dtime,dtvar,iv,ivar,nvar: ',dtime,dtvar,iv,ivar,nvar
 	stop 'error stop shyelab: time mismatch'
 	end
 
