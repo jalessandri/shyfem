@@ -185,7 +185,7 @@ SOBJS   = \
 	  nosutil.o ousutil.o subfemfile.o subvintp.o \
 	  genutil.o subfemintp.o subtsfile.o subxi.o \
 	  $(MODULES) \
-	  subshy.o subshyutil.o subbit10.o
+	  subshy.o subshyutil.o subbit10.o shyutil.o
 
 # general objects for 3D model shyfem
 
@@ -232,7 +232,7 @@ HTOBJS = \
 	$(ECOLOGICAL_OBJ) \
 	$(NETCDF_OBJ) $(PARALLEL_OBJ) \
 	$(GRDOBJS) \
-	subxi.o subshy.o subshyutil.o subbit10.o
+	subxi.o subshy.o subshyutil.o subbit10.o shyutil.o
 
 # objects for pre-processor shypre
 

@@ -27,9 +27,9 @@
         real, save, allocatable :: areae(:)
         real, save, allocatable :: areak(:)
 
-        real, save, allocatable :: znv(:)
-        real, save, allocatable :: zenv(:,:)
-        real, save, allocatable :: zeta(:)
+        real, save, allocatable :: shy_znv(:)
+        real, save, allocatable :: shy_zenv(:,:)
+        real, save, allocatable :: shy_zeta(:)
 
         integer, save, allocatable :: naccu(:,:)
         double precision, save, allocatable :: accum(:,:,:,:)
@@ -54,26 +54,26 @@
 	allocate(areae(nel))
 	allocate(areak(nkn))
 
-	allocate(znv(nkn))
-	allocate(zenv(3,nel))
-	allocate(zeta(nel))
+	allocate(shy_znv(nkn))
+	allocate(shy_zenv(3,nel))
+	allocate(shy_zeta(nel))
 
 	vol3e = 1.
 	vol3k = 1.
 	areae = 1.
 	areak = 1.
 
-	znv = 0.
-	zenv = 0.
-	zeta = 0.
+	shy_znv = 0.
+	shy_zenv = 0.
+	shy_zeta = 0.
 
 	end subroutine shyutil_init
 
 !***************************************************************
 
-	subroutine shyutil_init_accum(nn,nlv,nvar,istep)
+	subroutine shyutil_init_accum(nlv,nn,nvar,istep)
 
-	integer nn,nlv,nvar,istep
+	integer nlv,nn,nvar,istep
 
         allocate(naccu(0:nvar,istep))
         allocate(accum(nlv,nn,0:nvar,istep))
@@ -87,9 +87,9 @@
 
 !***************************************************************
 
-	subroutine shyutil_init_dir(nn,nlv,nvar,istep)
+	subroutine shyutil_init_dir(nlv,nn,nvar,istep)
 
-	integer nn,nlv,nvar,istep
+	integer nlv,nn,nvar,istep
 
         allocate(dir(nlv,nn,idir,0:nvar,istep))
 
@@ -101,7 +101,7 @@
 	end module shyutil
 !==================================================================
 
-	subroutine shy_make_vert_aver(ivars,nndim,cv3,cv2)
+	subroutine shy_make_vert_aver(idims,nndim,cv3,cv2)
 
 	use basin
 	use levels
@@ -109,7 +109,7 @@
 
 	implicit none
 
-	integer ivars(4)
+	integer idims(4)
 	integer nndim
 	real cv3(nlvdi,nndim)
 	real cv2(nndim)
@@ -118,9 +118,9 @@
 	real cmin,cmax,cmed,vtot
 	real vol2(nndim)
 
-        ivar = ivars(4)
-        lmax = ivars(3)
-        nn = ivars(1) * ivars(2)
+        ivar = idims(4)
+        lmax = idims(3)
+        nn = idims(1) * idims(2)
 
 	if( lmax == 1 ) then
 	  cv2(:) = cv3(1,:)
@@ -144,7 +144,7 @@
 
 !***************************************************************
 
-	subroutine shy_make_aver(ivars,nndim,cv3
+	subroutine shy_make_aver(idims,nndim,cv3
      +				,cmin,cmax,cmed,vtot)
 
 	use basin
@@ -153,7 +153,7 @@
 
 	implicit none
 
-	integer ivars(4)
+	integer idims(4)
 	integer nndim
 	real cv3(nlvdi,nndim)
 	real cmin,cmax,cmed,vtot
@@ -164,9 +164,9 @@
 	real cv2(nndim)
 	real vol2(nndim)
 
-        ivar = ivars(4)
-        lmax = ivars(3)
-        nn = ivars(1) * ivars(2)
+        ivar = idims(4)
+        lmax = idims(3)
+        nn = idims(1) * idims(2)
 
 	if( abs(ivar) == 1 ) then		! water level - 2D
 	  if( lmax /= 1 ) then
@@ -250,7 +250,7 @@
 	integer nn
 	real cv3(nlvddi,nn)
 	real vol(nlvddi,nn)
-	real il(nn)
+	integer il(nn)
 	real cmin,cmax,cmed,vtot
 	real cv2(nn)
 	real vol2(nn)
@@ -302,11 +302,11 @@
 	integer ftype
 
 	if( ftype == 1 ) then
-	  call shy_make_zeta_from_elem(nel,zenv,zeta)
+	  call shy_make_zeta_from_elem(nel,shy_zenv,shy_zeta)
 	else if( ftype == 2 ) then
-	  call shy_make_zeta_from_node(nkn,nel,nen3v,znv,zeta)
+	  call shy_make_zeta_from_node(nkn,nel,nen3v,shy_znv,shy_zeta)
 	else
-	  zeta = 0.
+	  shy_zeta = 0.
 	end if
 
 	end
@@ -373,8 +373,14 @@
 
 	implicit none
 
+	logical binit
 	integer ie,ii,k
 	real area
+
+	call is_init_ev(binit)
+	if( .not. binit ) then
+	  stop 'error stop shy_make_area: ev not initialized'
+	end if
 
 	areak = 0.
 
@@ -415,7 +421,7 @@
 
 	do ie=1,nel
 	  a = areae(ie)
-	  z = zeta(ie)
+	  z = shy_zeta(ie)
 	  h = hev(ie)
 	  call get_layer_thickness(nlv,nsigma,hsigma,z,h,hlv,hl)
 	  lmax = ilhv(ie)
@@ -437,7 +443,7 @@
 !***************************************************************
 
 	subroutine shy_time_aver(mode,iv,nread,ifreq,istep,nndim
-     +				,ivars,threshold,cv3,bout)
+     +				,idims,threshold,cv3,bout)
 
 ! mode:  1:aver  2:sum  3:min  4:max  5:std  6:rms  7:thres  8:averdir
 !
@@ -453,7 +459,7 @@
 	integer iv
 	integer nread,ifreq,istep
 	integer nndim
-	integer ivars(4)
+	integer idims(4)
 	double precision threshold
 	real cv3(nlvdi,nndim)
 	logical bout
@@ -471,9 +477,9 @@
 	ip = mod(nread,istep)
 	if( ip .eq. 0 ) ip = istep
 
-        ivar = ivars(4)
-        lmax = ivars(3)
-        nn = ivars(1) * ivars(2)
+        ivar = idims(4)
+        lmax = idims(3)
+        nn = idims(1) * idims(2)
 
 	!write(6,*) 'ip: ',ip,istep,nread,mode
 

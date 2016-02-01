@@ -160,7 +160,7 @@
 	call elabutil_set_averaging(nvar)	!sets btrans
 
 	if( btrans ) then
-	  call shyutil_init_accum(nndim,nlvdi,nvar,istep)
+	  call shyutil_init_accum(nlvdi,nndim,nvar,istep)
 	else
 	  call shyutil_init_accum(1,1,1,1)
 	end if
@@ -536,8 +536,8 @@
 	logical bfirst
 	double precision dtvar
 
-	znv = 0.
-	zenv = 0.
+	shy_znv = 0.
+	shy_zenv = 0.
 
 	iv = 0
 	bfirst = .true.
@@ -563,10 +563,10 @@
 	  cv3all(:,:,iv) = cv3(:,:) * fact
 	  if( abs(ivar) == 1 ) then		! water level
 	    if( ivar == -1 .or. iv == 1 ) then
-	      znv = cv3(1,1:n)
+	      shy_znv = cv3(1,1:n)
 	    else
 	      !zenv = cv3(1,1:3*n)
-	      zenv = reshape(cv3(1,1:3*n),(/3,n/))	!FIXME
+	      shy_zenv = reshape(cv3(1,1:3*n),(/3,n/))	!FIXME
 	    end if
 	  end if
 	end do
