@@ -394,7 +394,8 @@ c tests for adjacency between nodes
 	integer k1,k2
 	integer elems(maxlnk)
 
-	integer n,i,ie,ii
+	integer n,i,ie,ii,nv
+	integer kn(3)
 
 	iskadj = .true.
 
@@ -402,8 +403,9 @@ c tests for adjacency between nodes
 
 	do i = 1,n
 	  ie = elems(i)
-	  do ii=1,3
-	    if( nen3v(ii,ie) .eq. k2 ) return
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
+	    if( kn(ii) .eq. k2 ) return
 	  end do
 	end do
 

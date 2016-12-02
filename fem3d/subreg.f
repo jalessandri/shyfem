@@ -2062,6 +2062,7 @@ c checks if point (xp,yp) is in element ie
 	integer ie
 	real xp,yp
 
+	logical b1d
 	integer ii,k,in
 	real xmin,ymin,xmax,ymax
 	real x(3),y(3)
@@ -2072,19 +2073,31 @@ c checks if point (xp,yp) is in element ie
 
 	do ii=1,3
 	    k = nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    x(ii) = xgv(k)
 	    y(ii) = ygv(k)
 	end do
 
-	xmin = min(x(1),x(2),x(3))
-	ymin = min(y(1),y(2),y(3))
-	xmax = max(x(1),x(2),x(3))
-	ymax = max(y(1),y(2),y(3))
+	b1d = .false.
+	if( k == 0 ) then
+	  b1d = .true.
+	  x(3) = x(1)
+	  y(3) = y(1)
+	end if
+
+	xmin = minval(x)
+	ymin = minval(y)
+	xmax = maxval(x)
+	ymax = maxval(y)
 
 	if( xp .ge. xmin .and. xp .le. xmax ) then
 	  if( yp .ge. ymin .and. yp .le. ymax ) then
+	    if( b1d ) then
+		stop 'error stop in_element: 1d not yet ready'
+	    else
 		in = intri(x,y,xp,yp)
 		if( in .gt. 0 ) in_element = .true.
+	    end if
 	  end if
 	end if
 
@@ -2105,8 +2118,12 @@ c returns x,y of vertices of element ie
 
 	integer ii,k
 
+	x = 0.
+	y = 0.
+
 	do ii=1,3
 	  k = nen3v(ii,ie)
+	  if( k == 0 ) cycle
 	  x(ii) = xgv(k)
 	  y(ii) = ygv(k)
 	end do
@@ -2129,8 +2146,11 @@ c returns s at vertices of element ie
 
 	integer ii,k
 
+	s = 0.
+
 	do ii=1,3
 	  k = nen3v(ii,ie)
+	  if( k == 0 ) cycle
 	  s(ii) = sv(k)
 	end do
 

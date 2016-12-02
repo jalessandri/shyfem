@@ -94,6 +94,7 @@ c------------------------------------------------------------------
 	    n = 0
 	    do ii=1,3
 	      k = nen3v(ii,ie)
+	      if( k == 0 ) cycle
 	      if( iflag(k) .ne. 0 ) then
 	        n = n + 1
 	        ielfix(n,ie) = k

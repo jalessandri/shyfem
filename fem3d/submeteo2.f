@@ -875,41 +875,32 @@ c convert ice data (nothing to do)
 
 	include 'femtime.h'
 
-	integer k,ie,ii,ia
+	integer k,ie,ii,ia,nv
+	integer kn(3)
 	double precision racu,rorig
 	double precision rice,rarea,area
 
-	racu = 0.
-	do k=1,n
-	  racu = racu + r(k)
-	end do
-	rorig = racu / n
+	rorig = sum(r) / n
 
 	rice = 0.
 	rarea = 0.
 
 	do ie=1,nel
 	  ia = iarv(ie)
-	  area = 4. * ev(10,ie)
+	  call get_vertex_area_of_element(ie,nv,kn,area)
 	  if( ia == ia_icefree ) then
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      r(k) = 0.
+	    do ii=1,nv
+	      r(kn(ii)) = 0.
 	    end do
 	  else
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      rice = rice + area*r(k)
+	    do ii=1,nv
+	      rice = rice + area*r(kn(ii))
 	      rarea = rarea + area
 	    end do
 	  end if
 	end do
 
-	racu = 0.
-	do k=1,n
-	  racu = racu + r(k)
-	end do
-	racu = racu / n
+	racu = sum(r) / n
 
 	!write(6,*) rorig,racu
 	!write(166,*) it,rice/rarea

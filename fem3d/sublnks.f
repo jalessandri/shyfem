@@ -278,7 +278,8 @@ c
 c arguments
         real wink
 c local
-        integer ie,ii,k
+        integer ie,ii,k,n
+	integer kn(3)
         double precision w
 c functions
         logical iskbnd
@@ -289,8 +290,9 @@ c
         w=0.
         do ie=1,nel
           if(iwegv(ie).eq.0) then !element is in system
-            do ii=1,3
-              k=nen3v(ii,ie)
+	    call basin_get_vertex_nodes(ie,n,kn)
+            do ii=1,n
+              k=kn(ii)
               if( iskbnd(k) ) w=w+ev(10+ii,ie)
             end do
           end if

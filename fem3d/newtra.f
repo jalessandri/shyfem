@@ -53,7 +53,6 @@ c transforms transports to velocities
 	use mod_hydro_vel
 	use mod_hydro
 	use levels
-	use basin, only : nkn,nel,ngr,mbw
 
 	implicit none
 
@@ -83,7 +82,6 @@ c transforms velocities to transports
 	use mod_hydro_vel
 	use mod_hydro
 	use levels
-	use basin, only : nkn,nel,ngr,mbw
 
 	implicit none
 
@@ -110,8 +108,8 @@ c
 
 c local
 	logical bcolin
-	integer ie,k,ii
-	real aj,zm,hm
+	integer ie,k,ii,n
+	real area,zm,hm
 	real vv(nkn)
 c function
 	real getpar
@@ -125,19 +123,15 @@ c
 c
 	do ie=1,nel
 	  if( iwegv(ie) /= 0 ) cycle
-	  aj=ev(10,ie)
-	  zm=0.
-	  do ii=1,3
-	    zm=zm+zenv(ii,ie)
-	  end do
-	  zm=zm/3.
+	  call get_vertex_area_of_element(ie,n,area)
+	  zm = sum(zenv(1:n,ie)) / n
 	  hm=hev(ie)
 	  if(.not.bcolin) hm=hm+zm
-	  do ii=1,3
+	  do ii=1,n
 	    k=nen3v(ii,ie)
-	    vv(k)=vv(k)+aj
-	    up0v(k)=up0v(k)+aj*unv(ie)/hm
-	    vp0v(k)=vp0v(k)+aj*vnv(ie)/hm
+	    vv(k)=vv(k)+area
+	    up0v(k)=up0v(k)+area*unv(ie)/hm
+	    vp0v(k)=vp0v(k)+area*vnv(ie)/hm
 	  end do
 	end do
 
@@ -164,10 +158,9 @@ c transforms velocities to nodal values
 
 	implicit none
 
-	integer ie,l,k,ii
+	integer ie,l,k,ii,n
 	integer lmax
-	real aj
-	!real vv(nlvdi,nkn)
+	real area
 	real, allocatable :: vv(:,:)
 
 	allocate(vv(nlvdi,nkn))
@@ -179,14 +172,14 @@ c baroclinic part
 
 	do ie=1,nel
 	  if ( iwegv(ie) /= 0 ) cycle
+	  call get_vertex_area_of_element(ie,n,area)
           lmax = ilhv(ie)
-	  aj=ev(10,ie)
 	  do l=1,lmax
-	    do ii=1,3
+	    do ii=1,n
 	      k=nen3v(ii,ie)
-	      vv(l,k)=vv(l,k)+aj
-	      uprv(l,k)=uprv(l,k)+aj*ulnv(l,ie)
-	      vprv(l,k)=vprv(l,k)+aj*vlnv(l,ie)
+	      vv(l,k)=vv(l,k)+area
+	      uprv(l,k)=uprv(l,k)+area*ulnv(l,ie)
+	      vprv(l,k)=vprv(l,k)+area*vlnv(l,ie)
 	    end do
 	  end do
 	end do
@@ -220,23 +213,24 @@ c
 
 	implicit none
 
-	integer ie,l,k,ii
+	integer ie,l,k,ii,n
 	real u,v
 c
 c baroclinic part
 c
 	do ie=1,nel
 	 if( iwegv(ie) .eq. 0 ) then
+	  n = basin_get_vertex_of_element(ie)
 	  do l=1,ilhv(ie)
 	    u=0.
 	    v=0.
-	    do ii=1,3
+	    do ii=1,n
 	      k=nen3v(ii,ie)
 	      u=u+uprv(l,k)
 	      v=v+vprv(l,k)
 	    end do
-	    ulnv(l,ie)=u/3.
-	    vlnv(l,ie)=v/3.
+	    ulnv(l,ie)=u/n
+	    vlnv(l,ie)=v/n
 	  end do
 	 else
 	    ulnv(:,ie)=0.
@@ -518,8 +512,8 @@ c transforms element values to nodal values (weights are area)
 c
 c (2D version)
 
-	use evgeom
 	use basin
+	use average
 
 	implicit none
 
@@ -528,40 +522,7 @@ c arguments
         real nov(nkn)     !array with nodal values (out)
         real aux(nkn)     !aux array (nkn)
 
-c local
-        integer k,ie,ii
-        real area,value
-
-c-----------------------------------------------------------
-c initialize arrays
-c-----------------------------------------------------------
-
-        nov = 0.
-        aux = 0.
-
-c-----------------------------------------------------------
-c accumulate values
-c-----------------------------------------------------------
-
-        do ie=1,nel
-          area = 4.*ev(10,ie)
-          value = elv(ie)
-          do ii=1,3
-            k = nen3v(ii,ie)
-            nov(k) = nov(k) + area*value
-            aux(k) = aux(k) + area
-          end do
-        end do
-
-c-----------------------------------------------------------
-c compute final value
-c-----------------------------------------------------------
-
-        nov = nov / aux
-
-c-----------------------------------------------------------
-c end of routine
-c-----------------------------------------------------------
+	call element_to_node(nov,elv)
 
         end
 
@@ -573,57 +534,21 @@ c transforms element values to nodal values (weights are area)
 c
 c (3D version)
 
-	use evgeom
 	use levels
 	use basin
+	use average
 
 	implicit none
 
 c arguments
 	integer nlvddi
-        real elv(nlvddi,nel)     !array with element values (in)
-        real nov(nlvddi,nkn)     !array with nodal values (out)
-        real aux(nlvddi,nkn)     !aux array (nkn)
+        real elv(nlvdi,nel)     !array with element values (in)
+        real nov(nlvdi,nkn)     !array with nodal values (out)
+        real aux(nlvdi,nkn)     !aux array (nkn)
 
-c local
-        integer k,ie,ii,l,lmax
-        real area,value
+	if( nlvddi /= nlvdi ) stop 'error stop e2n3d: nlvddi'
 
-c-----------------------------------------------------------
-c initialize arrays
-c-----------------------------------------------------------
-
-        nov = 0.
-        aux = 0.
-
-c-----------------------------------------------------------
-c accumulate values
-c-----------------------------------------------------------
-
-        do ie=1,nel
-          area = 4.*ev(10,ie)
-	  lmax = ilhv(ie)
-	  do l=1,lmax
-            value = elv(l,ie)
-            do ii=1,3
-              k = nen3v(ii,ie)
-              nov(l,k) = nov(l,k) + area*value
-              aux(l,k) = aux(l,k) + area
-	    end do
-          end do
-        end do
-
-c-----------------------------------------------------------
-c compute final value
-c-----------------------------------------------------------
-
-	where ( aux > 0. ) 
-	  nov = nov / aux
-	end where
-
-c-----------------------------------------------------------
-c end of routine
-c-----------------------------------------------------------
+	call element_to_node(nov,elv)
 
         end
 
@@ -637,55 +562,19 @@ c (3D version)
 
 	use levels
 	use basin
+	use average
 
 	implicit none
 
 c arguments
 	integer mode		!min (-1) or max (+1)
 	integer nlvddi		!vertical dimension
-        real elv(nlvddi,nel)      !array with element values (in)
-        real nov(nlvddi,nkn)      !array with nodal values (out)
+        real elv(nlvdi,nel)      !array with element values (in)
+        real nov(nlvdi,nkn)      !array with nodal values (out)
 
-c local
-        integer k,ie,ii,l,lmax
-        real rinit,value
+	if( nlvddi /= nlvdi ) stop 'error stop e2n3d_minmax: nlvddi'
 
-c-----------------------------------------------------------
-c initialize arrays
-c-----------------------------------------------------------
-
-	if( mode .eq. -1) then
-	  rinit = 1.e+30
-	else if( mode .eq. 1 ) then
-	  rinit = -1.e+30
-	else
-	  stop 'error stop e2n3d_minmax: unknown mode'
-	end if
-
-        nov = rinit
-
-c-----------------------------------------------------------
-c accumulate values
-c-----------------------------------------------------------
-
-        do ie=1,nel
-	  lmax = ilhv(ie)
-	  do l=1,lmax
-            value = elv(l,ie)
-            do ii=1,3
-              k = nen3v(ii,ie)
-	      if( mode .eq. 1 ) then
-                nov(l,k) = max(nov(l,k),value)
-	      else
-                nov(l,k) = min(nov(l,k),value)
-	      end if
-	    end do
-          end do
-        end do
-
-c-----------------------------------------------------------
-c end of routine
-c-----------------------------------------------------------
+	call element_to_node(mode,nov,elv)
 
         end
 
@@ -700,32 +589,14 @@ c
 c (2D version)
 
 	use basin
+	use average
 
         implicit none
 
         real nov(nkn)     !array with nodal values (in)
         real elv(nel)     !array with element values (out)
 
-        integer k,ie,ii
-        real acu,value
-
-c-----------------------------------------------------------
-c convert values
-c-----------------------------------------------------------
-
-        do ie=1,nel
-          acu = 0.
-          do ii=1,3
-            k = nen3v(ii,ie)
-            value = nov(k)
-            acu = acu + value
-          end do
-          elv(ie) = acu / 3.
-        end do
-
-c-----------------------------------------------------------
-c end of routine
-c-----------------------------------------------------------
+	call node_to_element(nov,elv)
 
         end
 
@@ -739,38 +610,17 @@ c (3D version)
 
 	use levels
 	use basin
+	use average
 
         implicit none
 
-c arguments
         integer nlvddi		!vertical dimension of arrays
-        real nov(nlvddi,nkn)	!array with nodal values (in)
-        real elv(nlvddi,nel)	!array with element values (out)
+        real nov(nlvdi,nkn)	!array with nodal values (in)
+        real elv(nlvdi,nel)	!array with element values (out)
 
-c local
-        integer k,ie,ii,l,lmax
-        real acu,value
+	if( nlvddi /= nlvdi ) stop 'error stop n2e3d: nlvddi'
 
-c-----------------------------------------------------------
-c convert values
-c-----------------------------------------------------------
-
-        do ie=1,nel
-          lmax = ilhv(ie)
-          do l = 1,lmax
-	    acu = 0.
-            do ii=1,3
-              k = nen3v(ii,ie)
-              value = nov(l,k)
-              acu = acu + value
-	    end do
-            elv(l,ie) = acu / 3.
-          end do
-	end do
-
-c-----------------------------------------------------------
-c end of routine
-c-----------------------------------------------------------
+	call node_to_element(nov,elv)
 
         end
 
@@ -780,50 +630,15 @@ c******************************************************************
 
 c computes average of val (defined on nodes) over total basin
 
-	use evgeom
 	use basin
+	use average
 
 	implicit none
 
         real val(nkn)     !array with element values (in)
 	real aver	  !average (out)
 
-        integer k,ie,ii
-        double precision area,value
-        double precision accum,area_tot
-
-c-----------------------------------------------------------
-c initialize arrays
-c-----------------------------------------------------------
-
-	accum = 0.
-	area_tot = 0.
-
-c-----------------------------------------------------------
-c accumulate values
-c-----------------------------------------------------------
-
-        do ie=1,nel
-          area = 4.*ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-            value = val(k)
-	    accum = accum + value * area
-	    area_tot = area_tot + area
-          end do
-        end do
-
-c-----------------------------------------------------------
-c compute final value
-c-----------------------------------------------------------
-
-	if ( area_tot > 0. ) accum = accum / area_tot
-
-	aver = accum
-
-c-----------------------------------------------------------
-c end of routine
-c-----------------------------------------------------------
+	call average_over_nodes(val,aver)
 
         end
 

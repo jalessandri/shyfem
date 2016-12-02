@@ -17,8 +17,6 @@ c function volele(ie,mode)
 c       computes volume of element ie
 c function areaele(ie)
 c       computes area of element ie
-c subroutine nindex(ie,n,kn)
-c       returns node index for one element
 c subroutine setdepele(ie,h)
 c       sets depth for element ie
 c subroutine depvele(ie,mode,n,h)
@@ -267,31 +265,6 @@ c computes area of element ie
 
 c****************************************************************
 
-	subroutine nindex(ie,n,kn)
-
-c returns node index for one element
-
-	use basin
-
-	implicit none
-
-	integer ie      !number of element
-	integer n	!total number of nodes in element (3 for triangle)
-	integer kn(1)	!node index
-
-	integer ii
-
-	!call elebase(ie,n,ibase)
-	n = 3
-
-	do ii=1,n
-	  kn(ii) = nen3v(ii,ie)
-	end do
-
-	end
-
-c****************************************************************
-
 	subroutine setdepele(ie,h)
 
 c sets depth for element ie
@@ -503,6 +476,7 @@ c***********************************************************
 c computes nodal values from element values (scalar)
 
 	use mod_hydro
+	use evgeom
 	use basin
 
 	implicit none
@@ -533,8 +507,7 @@ c computes nodal values from element values (scalar)
 
 	do ie=1,nel
 
-	  area = areaele(ie)
-	  call nindex(ie,n,kn)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  call depvele(ie,+1,n,h)
 	  call scalvele(ie,sev,n,s)
 
@@ -551,10 +524,10 @@ c computes nodal values from element values (scalar)
 
 	do ie=1,nel
 
-	  area = areaele(ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  do ii=1,n
+	    k = kn(ii)
 	    vol = area * ( hm3v(ii,ie) + zenv(ii,ie) )
 	    sv(k) = sv(k) + sev(ii,ie) * vol
 	    v1v(k) = v1v(k) + vol
@@ -564,9 +537,7 @@ c computes nodal values from element values (scalar)
 
 	end if
 
-	do k=1,nkn
-	  sv(k) = sv(k) / v1v(k)
-	end do
+	where( v1v > 0 ) sv = sv / v1v
 
 	end
 
@@ -597,6 +568,7 @@ c sets up area for nodes
 
 	use levels
 	use basin
+	use mod_area
 
 	implicit none
 
@@ -634,6 +606,8 @@ c sets up area for nodes
 	  end do
 
 	end do
+
+	call mod_area_set_filled
 
 	end
 

@@ -90,102 +90,30 @@ c computes gradients for scalar cc (average gradient information)
 	real b,c,area
 	real ggx,ggy
 
-	do k=1,nkn
-	  lmax = ilhkv(k)
-	  do l=1,lmax
-	    gx(l,k) = 0.
-	    gy(l,k) = 0.
-	    aux(l,k) = 0.
-	  end do
-	end do
+	gx = 0.
+	gy = 0.
+	aux = 0.
 
         do ie=1,nel
           area=ev(10,ie) 
-	  lmax = ilhv(ie)
+	  lmax = min(nlvddi,ilhv(ie))
 	  do l=1,lmax
-            ggx=0
-            ggy=0
             do ii=1,3
               k=nen3v(ii,ie)
+	      if( k == 0 ) cycle
               b=ev(ii+3,ie)
               c=ev(ii+6,ie)
-              ggx=ggx+cc(l,k)*b
-              ggy=ggy+cc(l,k)*c
+              gx(l,k)=gx(l,k)+cc(l,k)*b*area
+              gy(l,k)=gy(l,k)+cc(l,k)*c*area
               aux(l,k)=aux(l,k)+area
 	    end do
-            do ii=1,3
-             k=nen3v(ii,ie)
-             gx(l,k)=gx(l,k)+ggx*area
-             gy(l,k)=gy(l,k)+ggy*area
-            end do 
           end do
         end do
 
-        do k=1,nkn
-	  lmax = ilhkv(k)
-	  do l=1,lmax
-	    area = aux(l,k)
-	    if( area .gt. 0. ) then
-	      gx(l,k) = gx(l,k) / area
-	      gy(l,k) = gy(l,k) / area
-	    end if
-	  end do
-        end do
-
-        end
-        
-c*****************************************************************
-
-        subroutine tvd_grad_2d(cc,gx,gy,aux)
-
-c computes gradients for scalar cc (only 2D - used in sedi3d)
-
-	use evgeom
-	use basin
-
-        implicit none
-
-	real cc(nkn)
-	real gx(nkn)
-	real gy(nkn)
-	real aux(nkn)
-
-        integer k,ie,ii
-	real b,c,area
-	real ggx,ggy
-
-	do k=1,nkn
-	  gx(k) = 0.
-	  gy(k) = 0.
-	  aux(k) = 0.
-	end do
-
-        do ie=1,nel
-          area=ev(10,ie) 
-          ggx=0
-          ggy=0
-          do ii=1,3
-              k=nen3v(ii,ie)
-              b=ev(ii+3,ie)
-              c=ev(ii+6,ie)
-              ggx=ggx+cc(k)*b
-              ggy=ggy+cc(k)*c
-              aux(k)=aux(k)+area
-	  end do
-          do ii=1,3
-             k=nen3v(ii,ie)
-             gx(k)=gx(k)+ggx*area
-             gy(k)=gy(k)+ggy*area
-          end do 
-        end do
-
-        do k=1,nkn
-	    area = aux(k)
-	    if( area .gt. 0. ) then
-	      gx(k) = gx(k) / area
-	      gy(k) = gy(k) / area
-	    end if
-        end do
+	where( aux > 0 )
+	  gx = gx / aux
+	  gy = gy / aux
+	end where
 
         end
         

@@ -416,18 +416,17 @@ c on return rinside(k) = 1 for nodes inside domain
 	real rinside(nkn)
 	integer iaout		!area code for outside elements
 
-	integer k,ie,ii,ia
+	integer k,ie,ii,ia,n
+	integer kn(3)
 
-        do k=1,nkn
-          rinside(k) = 0.
-        end do
+        rinside = 0.
 
         do ie=1,nel
           ia = iarv(ie)
           if( ia .ne. iaout ) then
-              do ii=1,3
-                k = nen3v(ii,ie)
-                rinside(k) = 1.
+	      call basin_get_vertex_nodes(ie,n,kn)
+              do ii=1,n
+                rinside(kn(ii)) = 1.
               end do
           end if
         end do
@@ -540,7 +539,8 @@ c computes masses for different areas
 	double precision vola(0:ndim)		!total volume
 	double precision conza(0:ndim)		!average conc of scalar
 
-	integer ie,k,ii,ia,l,lmax,nlev
+	integer ie,k,ii,ia,l,lmax,nlev,n
+	integer kn(3)
 	real v,conz,area,hdep
 	real h(nlvdi)
 
@@ -555,14 +555,14 @@ c computes masses for different areas
 	do ie=1,nel
 	  ia = iarv(ie)
 	  if( ia > ndim .or. ia < 0 ) goto 99
+	  call get_vertex_area_of_element(ie,n,kn,area)
           lmax = ilhv(ie)
-	  area = 4.*ev(10,ie)
 	  call dep3dele(ie,+1,nlev,h)
 	  if( lmax .ne. nlev ) goto 98
 	  do l=1,lmax
 	    hdep = h(l)
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    do ii=1,n
+	      k = kn(ii)
               v = area * hdep
               conz = cnv(l,k)
               massa(ia) = massa(ia) + v*conz

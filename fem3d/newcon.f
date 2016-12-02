@@ -1179,6 +1179,7 @@ c	----------------------------------------------------------------
 	  iext = 0
 	  do ii=1,3
 	    k = nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    if( is_external_boundary(k) ) iext = iext + 1
 	  end do
 
@@ -2128,6 +2129,7 @@ c horizontal contribution
 c---------------------------------------------------------------
 
 	do ie=1,nel
+	  if( basin_element_is_1d(ie) ) cycle
 	  lmax = ilhv(ie)
 	  do l=1,lmax
 	    amin = +1.e+30

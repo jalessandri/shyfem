@@ -273,7 +273,7 @@ c		  depth for control and section nodes
 c
 
 		  call depvele(ie,0,nvert,hdep)
-		  call nindex(ie,nvert,kvert)
+		  call basin_get_vertex_nodes(ie,nvert,kvert)
 
 		  do i=1,nvert
 		    kn = kvert(i)
@@ -642,6 +642,7 @@ ccc              rqv(k2)=rqv(k2)+hm*flux2*geyer
 		    ie=ivccv(jiboc+i)
 		    do ii=1,3
 		      kn=nen3v(ii,ie)
+		      if( kn == 0 ) cycle
 		      do k=1,nkboc
 			kboc=ivccv(jkboc+k)
 			if(kn.eq.kboc) then

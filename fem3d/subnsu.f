@@ -38,62 +38,12 @@ c x,y		coordinates of baricentre (return value)
 
 	implicit none
 
-c arguments
 	integer ie
 	real x,y
-c local variables
-	integer i,kkk
-	real xb,yb
 
-	xb=0.
-	yb=0.
-	do i=1,3
-	   kkk=nen3v(i,ie)
-	   xb=xb+xgv(kkk)
-	   yb=yb+ygv(kkk)
-	end do
-
-	x=xb/3.
-	y=yb/3.
+	call basin_element_average_2d_2var(ie,xgv,ygv,x,y)
 
 	end
-
-c***************************************************************
-
-        function area_element(ie)
-
-c area for element ie
-
-	use basin
-
-        implicit none
-
-c arguments
-        real area_element
-        integer ie
-c local
-        integer kn1,kn2,kn3
-        real*8 x1,x2,x3,y1,y2,y3
-        real*8 half
-
-        half = 0.5
-
-        kn1=nen3v(1,ie)
-        kn2=nen3v(2,ie)
-        kn3=nen3v(3,ie)
-
-        x1=xgv(kn1)
-        y1=ygv(kn1)
-        x2=xgv(kn2)
-        y2=ygv(kn2)
-        x3=xgv(kn3)
-        y3=ygv(kn3)
-
-        area_element = half * ( (x2-x1) * (y3-y1) - (x3-x1) * (y2-y1) )
-
-        end
-
-c***************************************************************
 
 	subroutine coord(k,x,y)
 

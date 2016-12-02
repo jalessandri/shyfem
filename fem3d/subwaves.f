@@ -616,7 +616,7 @@ c local
         real wavefy(nlvdim,neldim)      !wave forcing term y
 
         double precision b,c           !x and y derivated form function [1/m]
-	integer k,ie,ii,l,ilevel
+	integer k,ie,ii,l,ilevel,n
         real radsx,radsy
 
   	call nantest(nkn*nlvdim,SXX3D,'SXX3D')
@@ -624,11 +624,12 @@ c local
 	call nantest(nkn*nlvdim,SYY3D,'SYY3D')
 
 	do ie = 1,nel
+	  n = basin_get_vertex_of_element(ie)
 	  ilevel = ilhv(ie)
 	  do l=1,ilevel
 	    radsx = 0.
 	    radsy = 0.
-	    do ii = 1,3
+	    do ii = 1,n
 	      k = nen3v(ii,ie)
               b = ev(3+ii,ie)
               c = ev(6+ii,ie)
@@ -673,14 +674,14 @@ c common
 c local
         real stokesz(nlvdim,nkndim)	!z stokes velocity on node k
 	real hk(nlvdim)			!layer tickness on nodes
-	integer k,ie,ii,l,ilevel
+	integer k,ie,ii,l,ilevel,n
 	real f				!Coriolis parameter on elements
 	real h				!layer thickness
 	real u,v			!velocities at level l and elements
 	real stxe(nlvdim,neldim)	!x stokes transport on elements
 	real stye(nlvdim,neldim)	!y stokes transport on elements
 	real stxk, styk			!stokes transport on nodes
-	real auxx, auxy			!auxiliary variables
+	real auxx, auxy, aux		!auxiliary variables
 	real jbk			!integrated wave perssure term
         double precision b,c		!x and y derivated form function [1/m]
 	real wavesx,wavesy
@@ -708,6 +709,7 @@ c local
 !       -----------------------------------------------
 
         do ie = 1,nel
+	  n = basin_get_vertex_of_element(ie)
           ilevel = ilhv(ie)
 	  f = fcorv(ie)
           do l = 1,ilevel
@@ -715,10 +717,11 @@ c local
             wavesy = 0.
 	    auxx = 0.
 	    auxy = 0.
+	    aux = 0.
             h = hdenv(l,ie)
 	    u = ulnv(l,ie)
 	    v = vlnv(l,ie)
-            do ii = 1,3
+            do ii = 1,n
               k = nen3v(ii,ie)
 	      h = hdknv(l,k)
               b = ev(3+ii,ie)
@@ -727,7 +730,8 @@ c local
 	      styk = stokesy(l,k) * h
 	      auxx = auxx + stxk
 	      auxy = auxy + styk
-              jbk = wavejb(k) * h * grav / 3.	!???? is it correct to divide by 3?
+	      aux = aux + 1.
+              jbk = wavejb(k) * h * grav / 3.	!???? is it correct to divide by 3?	!FIXME_GGU
 
               wavesx = wavesx - (u*b*styk - v*c*styk) + b*jbk
               wavesy = wavesy + (u*b*stxk - v*c*stxk) + c*jbk
@@ -737,8 +741,8 @@ c local
               !wavesy = wavesy - (u*c*stxk + v*c*styk) + c*jbk
 
             end do
-	    stxe(l,ie) = auxx / 3.
-	    stye(l,ie) = auxy / 3.
+	    stxe(l,ie) = auxx / aux
+	    stye(l,ie) = auxy / aux
 
             wavefx(l,ie) = wavesx - f*stye(l,ie)
             wavefy(l,ie) = wavesy + f*stxe(l,ie)
@@ -827,10 +831,10 @@ c arguments
 c local
 	real stokesz(0:nlvdim,nkndim) 	!z stokes velocity on node k
         logical debug
-        integer k,ie,ii,kk,l,lmax
+        integer k,ie,ii,kk,l,lmax,n
         integer ilevel
         double precision b,c            !x and y derivated form function [1/m]
-	real aj,ff,atop,acu
+	real area,ff,atop,acu
         logical is_zeta_bound,is_boundary_node
 
 c initialize
@@ -847,16 +851,16 @@ c initialize
 c compute difference of velocities for each layer
 
         do ie=1,nel
-          aj=4.*ev(10,ie)               !area of triangle / 3
+	  call get_vertex_area_of_element(ie,n,area)
           ilevel = ilhv(ie)
           do l=1,ilevel
-            do ii=1,3
+            do ii=1,n
                kk=nen3v(ii,ie)
                b = ev(ii+3,ie)
                c = ev(ii+6,ie)
                ff = stxe(l,ie)*b + stye(l,ie)*c
-               vf(l,kk) = vf(l,kk) + 3. * aj * ff
-               va(l,kk) = va(l,kk) + aj
+               vf(l,kk) = vf(l,kk) + 3. * area * ff
+               va(l,kk) = va(l,kk) + area
             end do
           end do
         end do
@@ -915,12 +919,7 @@ c-----------------------------------------------------------
         do ie=1,nel
           lmax = ilhv(ie)
           do l = 1,lmax
-            acu = 0.
-            do ii=1,3
-              k = nen3v(ii,ie)
-              acu = acu + stokesz(l,k)
-            end do
-            stokesze(l,ie) = acu / 3.
+	    stokesze(l,ie) = basin_element_average(nlvdi,l,ie,stokesz)
           end do
           stokesze(0,ie) = 0.
         end do
@@ -1114,15 +1113,7 @@ c	get wind speed and direction
 c       -------------------------------------------------------------
 
 	do ie=1,nel
-	  wx = 0.
-	  wy = 0.
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    wx = wx + wxv(k)
-	    wy = wy + wyv(k)
-	  end do
-	  wx = wx / 3.
-	  wy = wy / 3.
+	  call basin_element_average2(ie,wxv,wyv,wx,wy)
           call c2p(wx,wy,winds(ie),windd(ie))
 	end do
 

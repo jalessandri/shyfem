@@ -19,31 +19,15 @@ c converts distributed source from [m/s] to [m**3/s]
 	use mod_bound_dynamic
 	use evgeom
 	use basin
+	use mod_area
 
 	implicit none
 
+	if( .not. mod_area_is_filled() ) then
+	  stop 'error stop convert_distributed: area not ready'
+	end if
 
-	include 'param.h'
-
-	integer k,ie,ii
-	real area3
-	real v1v(nkn)
-
-	do k=1,nkn
-	  v1v(k) = 0.
-	end do
-
-	do ie=1,nel
-	  area3 = 4. * ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    v1v(k) = v1v(k) + area3
-	  end do
-	end do
-
-	do k=1,nkn
-	  rqdsv(k) = rqdsv(k) * v1v(k)
-	end do
+	rqdsv = rqdsv * areakv(1,:)
 
 	end
 

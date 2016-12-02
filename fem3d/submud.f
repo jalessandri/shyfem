@@ -1788,7 +1788,7 @@ c     +	k.eq.365.or.k.eq.360.or.k.eq.353)then!DEB
           end do
           write(5001,*) nel
           do ie = 1, nel
-            write(5001,*)nen3v(1,ie)-1,nen3v(2,ie)-1,nen3v(3,ie)-1,0,ie
+            write(5001,*) (nen3v(ii,ie)-1,ii=1,3),0,ie
           enddo
         endif
 

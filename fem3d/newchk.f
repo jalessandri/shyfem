@@ -390,6 +390,7 @@ c common
           do ie=1,nel
             do ii=1,3
 	      kk = nen3v(ii,ie)
+	      if( kk == 0 ) cycle
 	      if( kk .eq. k ) then
 	        netot = netot + 1
 	        if( netot .gt. ngr ) then
@@ -675,6 +676,7 @@ c----------------------------------------------------------------
           do l=1,lmax
             do ii=1,3
                 k=nen3v(ii,ie)
+		if( k == 0 ) cycle
                 b = ev(ii+3,ie)
                 c = ev(ii+6,ie)
                 ffn = utlnv(l,ie)*b + vtlnv(l,ie)*c
@@ -796,6 +798,7 @@ c----------------------------------------------------------------
 
           do ii=1,3
                 k=nen3v(ii,ie)
+		if( k == 0 ) cycle
                 b = ev(ii+3,ie)
                 c = ev(ii+6,ie)
 		ff = ubar * b + vbar * c
@@ -1058,6 +1061,8 @@ c writes debug information on node k
 	integer ipext
 	real volnode
 
+	if( k == 0 ) return
+
 	iu = iucheck
 	lmax = ilhkv(k)
 
@@ -1110,9 +1115,11 @@ c writes debug information on element ie
 	include 'femtime.h'
 
 	integer iu
-	integer l,lmax,ii
+	integer l,lmax,ii,n
 
 	integer ieext
+
+	n = basin_get_vertex_of_element(ie)
 
 	iu = iucheck
 	lmax = ilhv(ie)
@@ -1121,12 +1128,12 @@ c writes debug information on element ie
 	write(iu,*) 'it,idt,ie,ieext:  ',it,idt,ie,ieext(ie)
 	write(iu,*) 'lmax,iwegv,iwetv: ',lmax,iwegv(ie),iwetv(ie)
 	write(iu,*) 'area:             ',ev(10,ie)*12.
-	write(iu,*) 'nen3v  :          ',(nen3v(ii,ie),ii=1,3)
+	write(iu,*) 'nen3v  :          ',(nen3v(ii,ie),ii=1,n)
 	write(iu,*) 'hev:              ',hev(ie)
-	write(iu,*) 'zeov:             ',(zeov(ii,ie),ii=1,3)
-	write(iu,*) 'zenv:             ',(zenv(ii,ie),ii=1,3)
-	write(iu,*) 'zov:              ',(zov(nen3v(ii,ie)),ii=1,3)
-	write(iu,*) 'znv:              ',(znv(nen3v(ii,ie)),ii=1,3)
+	write(iu,*) 'zeov:             ',(zeov(ii,ie),ii=1,n)
+	write(iu,*) 'zenv:             ',(zenv(ii,ie),ii=1,n)
+	write(iu,*) 'zov:              ',(zov(nen3v(ii,ie)),ii=1,n)
+	write(iu,*) 'znv:              ',(znv(nen3v(ii,ie)),ii=1,n)
 	write(iu,*) 'hdeov:            ',(hdeov(l,ie),l=1,lmax)
 	write(iu,*) 'hdenv:            ',(hdenv(l,ie),l=1,lmax)
 	write(iu,*) 'utlov:            ',(utlov(l,ie),l=1,lmax)
@@ -1165,6 +1172,7 @@ c writes debug information on nodes in element ie
 
 	do ii=1,3
 	  k = nen3v(ii,ie)
+	  if( k == 0 ) cycle
 	  call check_node(k)
 	end do
 
@@ -1200,6 +1208,7 @@ c writes debug information on elements around node k
 	  bdebug = .false.
 	  do ii=1,3
 	    kk = nen3v(ii,ie)
+	    if( kk == 0 ) cycle
 	    if( kk .eq. k ) bdebug = .true.
 	  end do
 	  if( bdebug ) call check_elem(ie)

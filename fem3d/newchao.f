@@ -21,12 +21,6 @@ c written on 06.06.96 by ggu   (from sp159f)
 
 	implicit none
 
-c parameter
-	include 'param.h'
-c common
-	include 'femtime.h'
-
-
 	real umax,dz,fact
 	integer ie,l,last,iex
 	integer ichange

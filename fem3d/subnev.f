@@ -67,6 +67,14 @@ c  1	spherical (lat/lon)
 
 	double precision, allocatable :: ev(:,:)
 
+        INTERFACE get_vertex_area_of_element
+        MODULE PROCEDURE
+     +                           get_vertex_area_of_element_r
+     +                          ,get_vertex_area_of_element_d
+     +                          ,get_vertex_area_of_element_kr
+     +                          ,get_vertex_area_of_element_kd
+        END INTERFACE
+
 !==================================================================
         contains
 !==================================================================
@@ -88,6 +96,126 @@ c  1	spherical (lat/lon)
 	end if
 
 	end subroutine ev_init
+
+c****************************************************************
+
+	pure function get_total_area_of_element(ie)
+
+	use basin
+
+	double precision 	:: get_total_area_of_element
+	integer, intent(in)	:: ie
+
+	if( basin_element_is_1d(ie) ) then
+	  get_total_area_of_element =  6. * ev(10,ie)
+	else
+	  get_total_area_of_element = 12. * ev(10,ie)
+	end if
+
+	end function get_total_area_of_element
+
+c****************************************************************
+
+	pure function get_finvol_area_of_element(ie)
+
+	use basin
+
+	double precision 	:: get_finvol_area_of_element
+	integer, intent(in)	:: ie
+
+	if( basin_element_is_1d(ie) ) then
+	  get_finvol_area_of_element = 3. * ev(10,ie)
+	else
+	  get_finvol_area_of_element = 4. * ev(10,ie)
+	end if
+
+	end function get_finvol_area_of_element
+
+c****************************************************************
+
+	pure subroutine get_vertex_area_of_element_r(ie,n,area)
+
+	use basin
+
+	integer, intent(in)	:: ie
+	integer, intent(out)	:: n
+	real, intent(out)	:: area
+
+	if( basin_element_is_1d(ie) ) then
+	  n = 2
+	  area = 3. * ev(10,ie)
+	else
+	  n = 3
+	  area = 4. * ev(10,ie)
+	end if
+
+	end subroutine get_vertex_area_of_element_r
+
+c****************************************************************
+
+	pure subroutine get_vertex_area_of_element_d(ie,n,area)
+
+	use basin
+
+	integer, intent(in)		:: ie
+	integer, intent(out)		:: n
+	double precision, intent(out)	:: area
+
+	if( basin_element_is_1d(ie) ) then
+	  n = 2
+	  area = -1.
+	else
+	  n = 3
+	  area = 4. * ev(10,ie)
+	end if
+
+	end subroutine get_vertex_area_of_element_d
+
+c****************************************************************
+
+	pure subroutine get_vertex_area_of_element_kr(ie,n,kn,area)
+
+	use basin
+
+	integer, intent(in)		:: ie
+	integer, intent(out)		:: n
+	integer, intent(out)		:: kn(:)
+	real, intent(out)		:: area
+
+	if( basin_element_is_1d(ie) ) then
+	  n = 2
+	  area = 3. * ev(10,ie)
+	else
+	  n = 3
+	  area = 4. * ev(10,ie)
+	end if
+
+	kn(1:n) = nen3v(1:n,ie)
+
+	end subroutine get_vertex_area_of_element_kr
+
+c****************************************************************
+
+	pure subroutine get_vertex_area_of_element_kd(ie,n,kn,area)
+
+	use basin
+
+	integer, intent(in)		:: ie
+	integer, intent(out)		:: n
+	integer, intent(out)		:: kn(:)
+	double precision, intent(out)	:: area
+
+	if( basin_element_is_1d(ie) ) then
+	  n = 2
+	  area = -1.
+	else
+	  n = 3
+	  area = 4. * ev(10,ie)
+	end if
+
+	kn(1:n) = nen3v(1:n,ie)
+
+	end subroutine get_vertex_area_of_element_kd
 
 !==================================================================
         end module evgeom

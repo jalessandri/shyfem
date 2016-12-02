@@ -835,16 +835,15 @@ c taub (stress at bottom) is accumulated and weighted by area
 	real areaac(nkn)
 
 	integer k,ie,ii,n,nlev
-	real aj,taubot
+	integer kn(3)
+	real area,taubot
 
 c	---------------------------------------------------
 c	initialize arrays
 c	---------------------------------------------------
 
-        do k=1,nkn
-          taub(k) = 0.
-          areaac(k) = 0.
-        end do
+        taub = 0.
+        areaac = 0.
  
 c	---------------------------------------------------
 c	accumulate
@@ -852,16 +851,14 @@ c	---------------------------------------------------
 
         do ie=1,nel
  
-          !call elebase(ie,n,ibase)
-	  n = 3
-          aj = ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  nlev = ilhv(ie)
 
           taubot = czdef * ( ulnv(nlev,ie)**2 + vlnv(nlev,ie)**2 )
           do ii=1,n
-            k = nen3v(ii,ie)
-            taub(k) = taub(k) + taubot * aj
-            areaac(k) = areaac(k) + aj
+            k = kn(ii)
+            taub(k) = taub(k) + taubot * area
+            areaac(k) = areaac(k) + area
           end do
 
 	end do
@@ -870,10 +867,7 @@ c	---------------------------------------------------
 c	compute bottom stress
 c	---------------------------------------------------
 
-        do k=1,nkn
-          if( areaac(k) .le. 0. ) stop 'error stop bnstress: (2)'
-          taub(k) = taub(k) / areaac(k)
-        end do
+	where( areaac > 0. ) taub = taub / areaac
 
 	end
 

@@ -6,6 +6,8 @@
         integer, private, save :: nkn_area = 0
         integer, private, save :: nlv_area = 0
 
+        logical, private, save :: is_filled = .false.
+
         real, allocatable, save :: areakv(:,:)
 
 	contains
@@ -39,6 +41,24 @@
         allocate(areakv(nlv,nkn))
 
         end subroutine mod_area_init
+
+!************************************************************
+
+	function mod_area_is_filled()
+
+	logical mod_area_is_filled
+
+	mod_area_is_filled = is_filled
+
+	end function mod_area_is_filled
+
+!************************************************************
+
+	subroutine mod_area_set_filled
+
+	is_filled = .true.
+
+	end subroutine mod_area_set_filled
 
 !************************************************************
 

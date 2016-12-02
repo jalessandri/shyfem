@@ -875,7 +875,7 @@ c******************************************************************
 
 	  hmed = depele(ie,0)
 
-	  call nindex(ie,nvert,kn)
+	  call basin_get_vertex_nodes(ie,nvert,kn)
 	  do ii=1,nvert
 	    v3v(kn(ii)) = 1.
 	  end do

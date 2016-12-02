@@ -159,8 +159,9 @@ c computes bottom friction
 
 
 
-	integer ie,ii,k,lmax
+	integer ie,ii,k,lmax,n
 	integer ireib
+	integer kn(3)
 	real hzg,alpha
 	real hzoff
 	real uso,vso,uv
@@ -233,24 +234,20 @@ c         ----------------------------------------------------------
                 end if
 		rr = raux*uv/(hzg*hzg)
           else if(ireib.eq.8) then		! use z0 computed by sedtrans
-                ss = 0.
-                do ii=1,3
-                  k = nen3v(ii,ie)
-                  ss = ss + z0bk(k)
-                end do
-                ss = ss / 3.
+                ss = basin_element_average(ie,z0bk)
                 raux = cdf(hzg,ss)
 		rr = raux*uv/(hzg*hzg)
           else if(ireib.eq.9) then		! function of fluid mud (AR:)
+	        call basin_get_vertex_nodes(ie,n,kn)
                 ss = 0.
-                do ii=1,3
-                  k = nen3v(ii,ie)
+                do ii=1,n
+                  k = kn(ii)
                   lmax = ilhkv(k)
                   call set_mud_roughness(k,lmax,alpha) ! (ARON)
                   ss = ss + alpha * rfric ! rfric = ks for this parameterization
                 end do
-                ss = ss / 3.
-                z0bk(k) = ss
+                ss = ss / n
+                !z0bk(k) = ss		!FIXME_GGU this is wrong
                 !z0bk(k) = max(z0bkmud(k),ss)
                 !ss = rfric	!ARON: do you really need to compute ss above?
                 raux = cdf(hzg,ss)
@@ -307,24 +304,22 @@ c interpolates area codes from elements to nodes (min or max)
 
 	implicit none
 
-	include 'param.h'
-
 	integer init,mode
-	integer k,ie,ii,ia
+	integer k,ie,ii,ia,n
+	integer kn(3)
 
 	mode = -1		! -1: use minimum   +1: use maximum
 
 	init = 99999999
 	if( mode .gt. 0 ) init = -init
 
-	do k=1,nkn
-	  iarnv(k) = init
-	end do
+	iarnv = init
 
 	do ie=1,nel
 	  ia = iarv(ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    if( mode .eq. -1 ) then
 		iarnv(k) = min(iarnv(k),ia)
 	    else

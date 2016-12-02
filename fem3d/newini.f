@@ -726,6 +726,7 @@ c set ilhkv array - only needs ilhv
 	  l=ilhv(ie)
 	  do ii=1,3
 	    k=nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    if(l.gt.ilhkv(k)) ilhkv(k)=l
 	  end do
 	end do
@@ -760,6 +761,7 @@ c set minimum number of levels for node and element
 	  l=ilhv(ie)
 	  do ii=1,3
 	    k=nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    if(l.lt.ilmkv(k)) ilmkv(k)=l
 	  end do
 	end do
@@ -778,6 +780,7 @@ c set minimum number of levels for node and element
 	  lmax = ilhv(ie)
 	  do ii=1,3
 	    k=nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    if(lmin.gt.ilmkv(k)) lmin = ilmkv(k)
 	  end do
 	  ilmv(ie) = lmin
@@ -820,6 +823,7 @@ c checks arrays ilhv and ilhkv
 	  lmax=ilhv(ie)
 	  do ii=1,3
 	    k=nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    lk = ilhkv(k)
 	    if( lk .le. 0 ) goto 98
 	    if( lk .lt. lmax ) goto 98
@@ -1130,11 +1134,7 @@ c spherical setting the basin projection (iproj > 0)
 	write(6,*) 'yc,ymin,ymax : ',yc,ymin,ymax
 
 	do ie=1,nel
-	  ym=0.
-	  do ii=1,3
-	    ym=ym+yaux(nen3v(ii,ie))
-	  end do
-	  ym=ym/3.
+	  ym = basin_element_average(ie,yaux)
 	  if( bgeo ) then			!spherical
 	    !fcorv(ie) = omega2*cos(ym*rad)	!BUG
 	    fcorv(ie) = omega2*sin(ym*rad)
@@ -1291,25 +1291,13 @@ c*****************************************************************
 c initializes water level with constant
 
 	use mod_hydro
-	use basin, only : nkn,nel,ngr,mbw
 
 	implicit none
 
 	real const		!constant z value to impose
 
-	integer k,ie,ii
-
-	do k=1,nkn
-	  znv(k) = const
-	  !zov(k) = const                !FIXME -> not needed
-	end do
-
-	do ie=1,nel
-	  do ii=1,3
-	    zenv(ii,ie) = const
-	    !zeov(ii,ie) = const         !FIXME -> not needed
-	  end do
-	end do
+	znv = const
+	zenv = const
 
         write(6,*) 'Water levels initialized with constant z = ',const
 

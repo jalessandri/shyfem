@@ -355,7 +355,7 @@ c
 !       Compute bed slope gradient
 !       -------------------------------------------------------------
 
-!        call tvd_grad_2d(hkv,gdx,gdy,v1v)
+!        call tvd_grad_3d(hkv,gdx,gdy,v1v,1)
 
 !       -------------------------------------------------------------------
 !       Compute sediment transport on nodes

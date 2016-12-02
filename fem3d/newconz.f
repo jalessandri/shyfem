@@ -55,7 +55,7 @@ c initializes tracer computation
 	use mod_conz
 	!use mod_diff_visc_fric
 	use levels, only : nlvdi,nlv
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -176,7 +176,7 @@ c*********************************************************************
 	use mod_conz
 	use mod_diff_visc_fric
 	use levels, only : nlvdi,nlv
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -236,7 +236,7 @@ c*********************************************************************
 	use mod_conz
 	use mod_diff_visc_fric
 	use levels, only : nlvdi,nlv
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -304,7 +304,7 @@ c*********************************************************************
 
 	use mod_conz
 	use levels, only : nlvdi,nlv
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -389,7 +389,7 @@ c*********************************************************************
 c simulates decay for concentration
 
 	use levels
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
         implicit none
 
@@ -423,7 +423,7 @@ c simulates decay for concentration (from Chapra, 506-510)
         use mod_layer_thickness
         use mod_ts
         use levels
-        use basin, only : nkn,nel,ngr,mbw
+        use basin, only : nkn
 
         implicit none
 
@@ -501,7 +501,7 @@ c simulates decay for concentration
 	use mod_layer_thickness
 	use mod_ts
 	use levels
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
         implicit none
 

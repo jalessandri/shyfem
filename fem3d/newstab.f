@@ -684,6 +684,7 @@ c	itmsti = -1
 	    sindex = sauxe1(l,ie)+sauxe2(l,ie)
 	    do ii=1,3
 	      k = nen3v(ii,ie)
+	      if( k == 0 ) cycle
 	      if( sindex .gt. smax(k) ) smax(k) = sindex
 	    end do
 	  end do

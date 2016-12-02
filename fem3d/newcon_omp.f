@@ -592,6 +592,7 @@ c*****************************************************************
 	  iext = 0
 	  do ii=1,3
 	    k = nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    if( is_external_boundary(k) ) iext = iext + 1
 	  end do
 

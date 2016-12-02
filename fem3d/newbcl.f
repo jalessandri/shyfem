@@ -455,7 +455,7 @@ c brespv() and rhov() are given at node and layer interface
 	use mod_layer_thickness
 	use mod_ts
 	use levels
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -539,7 +539,7 @@ c checks values of t/s/rho
 
 	use mod_ts
 	use levels
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 

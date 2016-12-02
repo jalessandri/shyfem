@@ -67,6 +67,7 @@ c if open boundary node, inodv(k) is number of boundary (ggu 15.11.2001)
 
 	double precision, parameter :: winmax = 359.99
         integer ie,ii,k,n
+	integer kn(3)
         integer ibc,ibtyp
 	integer nbc
         double precision winkv(nkn)
@@ -82,8 +83,9 @@ c sum angles
 
         do ie=1,nel
           if(iwegv(ie).eq.0) then !element is in system
-            do ii=1,3
-              k=nen3v(ii,ie)
+	    call basin_get_vertex_nodes(ie,n,kn)
+            do ii=1,n
+              k=kn(3)
               winkv(k)=winkv(k)+ev(10+ii,ie)
             end do
           end if

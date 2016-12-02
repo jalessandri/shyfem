@@ -676,6 +676,7 @@ c******************************************************************
 c initializes flux boundary
 
 	use mod_bound_geom
+	use mod_link
 	use basin
 
 	implicit none
@@ -683,7 +684,7 @@ c initializes flux boundary
         integer ibc
 
 	integer kranf,krend
-	integer ie,i,k1,k2,kk1,kk2,ii1,ii2
+	integer ie,i,k1,k2,kk1,kk2,ii,ii1,ii2
 	real fm,dx,dy,rl,h1,h2,fl
 	integer ipext
 
@@ -708,10 +709,9 @@ c initializes flux boundary
 	  k2=irv(i+1)
 
 	  do ie=1,nel
-	   do ii1=1,3
-	      ii2=mod(ii1,3)+1
-	      kk1=nen3v(ii1,ie)
-	      kk2=nen3v(ii2,ie)
+	   do ii=1,3
+	      kk1=kiinext(ii,ie)
+	      kk2=kiibhnd(ii,ie)
 	      if(k1.eq.kk1.and.k2.eq.kk2) goto 33
 	   end do
 	  end do
@@ -726,6 +726,8 @@ c initializes flux boundary
 	    stop 'error stop : iniflux'
 	  end if
 
+	  ii1 = iikthis(k1,ie)
+	  ii2 = iikthis(k2,ie)
 	  dx=xgv(k1)-xgv(k2)
 	  dy=ygv(k1)-ygv(k2)
 	  rl=sqrt(dx*dx+dy*dy)
@@ -743,7 +745,7 @@ c initializes flux boundary
 	  rhv(i+1)=rhv(i+1)+h2
 
 	  ierv(1,i)=ie
-	  ierv(2,i)=mod(ii2,3)+1
+	  ierv(2,i)=ii
 
 	end do
 

@@ -89,7 +89,7 @@ c initializes bfm computation
 	!use mod_bfm
 	!use mod_diff_visc_fric
 	use levels, only : nlvdi,nlv
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -180,7 +180,7 @@ c*********************************************************************
 	!use mod_bfm
 	use mod_diff_visc_fric
 	use levels, only : nlvdi,nlv
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -248,7 +248,7 @@ c*********************************************************************
 
 	!use mod_bfm
 	use levels, only : nlvdi,nlv
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	implicit none
 
@@ -302,7 +302,7 @@ c*********************************************************************
 	subroutine bfm_check(what)
 
 	use levels
-	use basin, only : nkn,nel,ngr,mbw
+	use basin, only : nkn
 
 	character*(*) what
 

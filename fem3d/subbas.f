@@ -37,6 +37,10 @@ c***********************************************************
 
         implicit none
 
+	logical, private, parameter :: enable_1d = .false. !true if 1d needed
+
+	logical, private, save :: has_1d = .false.	!true if 1d found
+
         integer, private, save :: nkn_basin = 0
         integer, private, save :: nel_basin = 0
 
@@ -73,6 +77,17 @@ c***********************************************************
 
         INTERFACE basin_is_basin
         MODULE PROCEDURE basin_is_basin_by_file,basin_is_basin_by_unit
+        END INTERFACE
+
+        INTERFACE basin_element_average
+        MODULE PROCEDURE
+     +				 basin_element_average_2d
+     +				,basin_element_average_3d
+        END INTERFACE
+
+        INTERFACE basin_element_average2
+        MODULE PROCEDURE
+     +				 basin_element_average_2d_2var
         END INTERFACE
 
 !==================================================================
@@ -273,6 +288,153 @@ c***********************************************************
 	close(iunit)
 
 	end function basin_is_basin_by_file
+
+c***********************************************************
+c***********************************************************
+c***********************************************************
+c utility functions (for inlining)
+c***********************************************************
+c***********************************************************
+c***********************************************************
+
+	pure subroutine basin_element_average_2d_2var(ie,v1,v2,r1,r2)
+
+	integer, intent(in)		:: ie
+	real, intent(in)		:: v1(nkn)
+	real, intent(in)		:: v2(nkn)
+	real, intent(out)		:: r1,r2
+
+	integer ii,n,k
+	real aver
+
+	n = 3
+	if( enable_1d .and. has_1d ) then
+	  if( nen3v(3,ie) == 0 ) n = 2
+	end if
+
+	r1 = 0.
+	r2 = 0.
+	do ii=1,n
+	  k = nen3v(ii,ie)
+	  r1 = r1 + v1(k)
+	  r2 = r2 + v2(k)
+	end do
+	r1 = r1 / n
+	r2 = r2 / n
+
+	end subroutine basin_element_average_2d_2var
+
+c***********************************************************
+
+	pure function basin_element_average_2d(ie,value)
+
+	real				:: basin_element_average_2d
+	integer, intent(in)		:: ie
+	real, intent(in)		:: value(nkn)
+
+	integer ii,n
+	real aver
+
+	n = 3
+	if( enable_1d .and. has_1d ) then
+	  if( nen3v(3,ie) == 0 ) n = 2
+	end if
+
+	aver = 0.
+	do ii=1,n
+	  aver = aver + value(nen3v(ii,ie))
+	end do
+	aver = aver / n
+
+	basin_element_average_2d = aver
+
+	end function basin_element_average_2d
+
+c***********************************************************
+
+	pure function basin_element_average_3d(nlvddi,l,ie,value)
+
+	real				:: basin_element_average_3d
+	integer, intent(in)		:: nlvddi
+	integer, intent(in)		:: l
+	integer, intent(in)		:: ie
+	real, intent(in)		:: value(nlvddi,nkn)
+
+	integer ii,n
+	real aver
+
+	n = 3
+	if( enable_1d .and. has_1d ) then
+	  if( nen3v(3,ie) == 0 ) n = 2
+	end if
+
+	aver = 0.
+	do ii=1,n
+	  aver = aver + value(l,nen3v(ii,ie))
+	end do
+	aver = aver / n
+
+	basin_element_average_3d = aver
+
+	end function basin_element_average_3d
+
+c***********************************************************
+c***********************************************************
+c***********************************************************
+
+	pure subroutine basin_get_vertex_nodes(ie,n,kn)
+
+	integer, intent(in)		:: ie
+	integer, intent(out)		:: n
+	integer, intent(out)		:: kn(:)
+
+	if( enable_1d .and. has_1d ) then
+	  if( nen3v(3,ie) == 0 ) then
+	    n = 2
+	  else
+	    n = 3
+	  end if
+	else
+	  n = 3
+	end if
+
+	kn(1:n) = nen3v(1:n,ie)
+
+	end subroutine basin_get_vertex_nodes
+
+c***********************************************************
+
+	pure function basin_get_vertex_of_element(ie)
+
+	integer				:: basin_get_vertex_of_element
+	integer, intent(in)		:: ie
+
+	if( enable_1d .and. has_1d ) then
+	  if( nen3v(3,ie) == 0 ) then
+	    basin_get_vertex_of_element = 2
+	  else
+	    basin_get_vertex_of_element = 3
+	  end if
+	else
+	  basin_get_vertex_of_element = 3
+	end if
+
+	end function basin_get_vertex_of_element
+
+c***********************************************************
+
+	pure function basin_element_is_1d(ie)
+
+	logical				:: basin_element_is_1d
+	integer, intent(in)		:: ie
+
+	if( enable_1d .and. has_1d ) then
+	  basin_element_is_1d = ( nen3v(3,ie) == 0 )
+	else
+	  basin_element_is_1d = .false.
+	end if
+
+	end function basin_element_is_1d
 
 !==================================================================
         end module basin

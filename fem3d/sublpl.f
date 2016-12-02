@@ -28,28 +28,21 @@ c	ev
 	implicit none
 
 c arguments
-	real rmat(1)		!band matrix to be assembled
-	real zv(1)		!solution to system on return
-	real rzv(1)		!boundary conditions
+	real rmat(nkn*(mbw+1))	!band matrix to be assembled
+	real zv(nkn)		!solution to system on return
+	real rzv(nkn)		!boundary conditions
 	real flag		!flag to distinguish boundary condition
-
-c common
 c local
 	integer i,k
-	integer matdim
+	!integer matdim
 	integer ier
 	real epseps
 
 	epseps = 1.e-6
-	matdim = nkn*(mbw+1)	!dimension of rmat - only for symmetric matrix
+	!matdim = nkn*(mbw+1)	!dimension of rmat - only for symmetric matrix
 
-        do i=1,matdim
-            rmat(i)=0.
-        end do
-
-        do k=1,nkn
-            zv(k)=0.
-        end do
+	rmat = 0.
+	zv = 0.
 
 	call lapl_assemble(rmat,zv,rzv,flag)
 
@@ -75,13 +68,10 @@ c assembles linear system matrix for laplacian
 	implicit none
 
 c arguments
-	real rmat(1)		!band matrix to be assembled
-	real zv(1)		!constant vector for z system
-	real rzv(1)		!boundary conditions
+	real rmat(nkn*(mbw+1))	!band matrix to be assembled
+	real zv(nkn)		!constant vector for z system
+	real rzv(nkn)		!boundary conditions
 	real flag		!flag to distinguish boundary condition
-c common
-
-	include 'param.h'
 c local
 	integer kn(3)
 	integer ie,i,j,j1,j2,n,m,kk

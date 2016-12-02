@@ -44,86 +44,225 @@ c 02.12.2015	ggu	lnk_elems and lnk_nodes eliminated
 c
 c****************************************************************
 
-        function kthis(i,ie)
+!==================================================================
+        module mod_link
+!==================================================================
 
-c gets node at position i in ie
-c
-c i     position
-c ie    element
+	implicit none
+
+!==================================================================
+        contains
+!==================================================================
+
+        pure function link_is_k(ii,ie,k)
+
+! true if nen3v(ii,ie) is k
 
 	use basin
 
-        implicit none
+        logical link_is_k
+        integer, intent(in) :: ii,ie,k
 
-c arguments
-	integer kthis
-        integer i,ie
+        link_is_k = ( nen3v(ii,ie) == k )
 
-	kthis = nen3v(i,ie)
+        end function link_is_k
+
+!****************************************************************
+
+        pure function kiithis(ii,ie)
+
+! gets node at position ii in ie
+
+	use basin
+
+	integer		    :: kiithis
+        integer, intent(in) :: ii
+        integer, intent(in) :: ie
+
+	kiithis = nen3v(ii,ie)
 
 	end
 
-c****************************************************************
-c
-        function knext(k,ie)
-c
-c gets node after k in ie
-c
-c k     actual node
-c ie    element
-c
+!****************************************************************
+
+        pure function kiinext(ii,ie)
+
+! gets node at position ii+1 in ie
+
 	use basin
 
-        implicit none
-c
-c arguments
+	integer		    :: kiinext
+        integer, intent(in) :: ii
+        integer, intent(in) :: ie
+
+	kiinext = nen3v(mod(ii,3)+1,ie)
+
+	end
+
+!****************************************************************
+
+        pure function kiibhnd(ii,ie)
+
+! gets node at position ii-1 in ie
+
+	use basin
+
+	integer		    :: kiibhnd
+        integer, intent(in) :: ii
+        integer, intent(in) :: ie
+
+	kiibhnd = nen3v(mod(ii+1,3)+1,ie)
+
+	end
+
+!****************************************************************
+
+        pure function iikthis(k,ie)
+
+! gets position of node k in ie
+
+	use basin
+
+	integer		    :: iikthis
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	integer ii
+
+	iikthis = 0
+
+        do ii=1,3
+          if( nen3v(ii,ie) .eq. k ) then
+            iikthis = ii
+            return
+          end if
+        end do
+
+	end
+
+!****************************************************************
+
+        pure function iiknext(k,ie)
+
+! gets next position of node k in ie
+
+	use basin
+
+	integer		    :: iiknext
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	integer ii
+
+	iiknext = 0
+
+        do ii=1,3
+          if( nen3v(ii,ie) .eq. k ) then
+            iiknext = mod(ii,3)+1
+            return
+          end if
+        end do
+
+	end
+
+!****************************************************************
+
+        pure function iikbhnd(k,ie)
+
+! gets back position of node k in ie
+
+	use basin
+
+	integer		    :: iikbhnd
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	integer ii
+
+	iikbhnd = 0
+
+        do ii=1,3
+          if( nen3v(ii,ie) .eq. k ) then
+            iikbhnd = mod(ii+1,3)+1
+            return
+          end if
+        end do
+
+	end
+
+!==================================================================
+        end module mod_link
+!==================================================================
+
+!****************************************************************
+
+        function kthis(ii,ie)
+
+! gets node at position ii in ie
+
+	use basin
+
+	integer		    :: kthis
+        integer, intent(in) :: ii
+        integer, intent(in) :: ie
+
+	kthis = nen3v(ii,ie)
+
+	end
+
+!****************************************************************
+
+        function knext(k,ie)
+
+! gets node after k in ie
+
+	use basin
+
 	integer knext
         integer k,ie
-c local
+
         integer i
-c
+
         do i=1,3
           if( nen3v(i,ie) .eq. k ) then
             knext=nen3v(mod(i,3)+1,ie)
             return
           end if
         end do
-c
+
         knext=0
-c
-        return
+
         end
-c
-c****************************************************************
-c
+
+!****************************************************************
+
         function kbhnd(k,ie)
-c
-c gets node before k in ie
-c
-c k     actual node
-c ie    element
-c
+
+! gets node before k in ie
+
+! k     actual node
+! ie    element
+
 	use basin
 
         implicit none
-c
-c arguments
+
 	integer kbhnd
         integer k,ie
-c local
+
         integer i
-c
+
         do i=1,3
           if( nen3v(i,ie) .eq. k ) then
             kbhnd=nen3v(mod(i+1,3)+1,ie)
             return
           end if
         end do
-c
+
         kbhnd=0
-c
-        return
+
         end
+
 c
 c****************************************************************
 c

@@ -437,6 +437,7 @@ c	    ---------------------------------------------------------------
 	    wbot = 0.
             do ii=1,3
                 k = nen3v(ii,ie)
+		if( k == 0 ) cycle
                 b = ev(3+ii,ie)
                 c = ev(6+ii,ie)
 		wbot = wbot + wlov(l,k)
@@ -570,6 +571,7 @@ c stability is computed for dt == 1
 	    r = 0.
             do ii=1,3
                 k = nen3v(ii,ie)
+		if( k == 0 ) cycle
                 b = ev(3+ii,ie)
                 c = ev(6+ii,ie)
 		r = r + rdistv(k)
@@ -1047,6 +1049,7 @@ c---------- DEB SIG
 
             do ii=1,3
 	      k = nen3v(ii,ie)
+	      if( k == 0 ) cycle
 	      rhop = rhov(l,k)		!rho^prime for each node of element
 	      rhoup = rhop
 	      if( l.gt.1) rhoup = rhov(l-1,k)
