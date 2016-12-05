@@ -82,6 +82,7 @@ c sets up bndo data structure
 	use mod_bndo
 	use mod_bound_geom
 	use mod_geom
+	use evgeom
 	use basin
 
 	implicit none
@@ -92,8 +93,9 @@ c sets up bndo data structure
 	integer i,ibc
 	integer inext,ilast,knext,klast
 	integer ie,n
-	integer ii,iii,ib,in,kn,nb,j
+	integer ii,iii,ib,in,kk,nb,j
 	integer nbc
+	integer kn(3)
 	real area
 	real dx,dy
 
@@ -218,19 +220,18 @@ c----------------------------------------------------------
 
 	do ie=1,nel
 
-	  !call elebase(ie,n,ibase)
-	  n = 3
-	  area = areaele(ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
+	  area = n * area	!total area of element
 
 	  do ii=1,n
-	    k = nen3v(ii,ie)
+	    k = kn(ii)
 	    ib = iopbnd(k)
 	    if( ib .gt. 0 ) then		!insert inner nodes
 	      do iii=1,n
-		kn = nen3v(iii,ie)
-	        in = iopbnd(kn)
+		kk = kn(iii)
+	        in = iopbnd(kk)
 		if( in .le. 0 ) then		!only inner nodes
-		  call bndinsert(ib,area,kn)
+		  call bndinsert(ib,area,kk)
 		end if
 	      end do
 	    end if

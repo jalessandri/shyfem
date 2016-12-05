@@ -750,7 +750,8 @@ c is -1 if node belongs to more than one box
 	include 'param.h'
 	include 'subboxa.h'
 
-	integer k,ie,ii,ib
+	integer k,ie,ii,ib,n
+	integer kn(3)
 	integer nb,nl
 
 	do k=1,nkn
@@ -759,8 +760,9 @@ c is -1 if node belongs to more than one box
 
 	do ie=1,nel
 	  ib = iboxes(ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    if( ikboxes(k) .eq. 0 ) then
 	      ikboxes(k) = ib
 	    else if( ikboxes(k) .ne. ib ) then
@@ -819,7 +821,7 @@ c computes max layers for each box
 	do ie=1,nel
 	  ib = iboxes(ie)
 	  hdep = hev(ie)
-	  area = 12.*ev(10,ie)
+	  area = get_total_area_of_element(ie)
 	  barea(ib) = barea(ib) + area
 	  bvolume(ib) = bvolume(ib) + area * hdep
 	  lmax = ilhv(ie)
@@ -1130,38 +1132,31 @@ c computes average zeta values for box
         real zev(3,nel)
 	real val(nbxdim)
 
-
 	double precision vald(nbxdim)
 	double precision vold(nbxdim)
 
-	integer ib,ie,ii
-	real vol,area3,z
+	integer ib,ie,ii,n
+	integer kn(3)
+	real vol,area,z
 
-	do ib=1,nbox
-	  vald(ib) = 0.
-	  vold(ib) = 0.
-	end do
+	val = 0.
+	vald = 0.
+	vold = 0.
 
 	do ie=1,nel
 	  !if( iwegv(ie) .eq. 0 ) then	!only for wet elements
 	    ib = iboxes(ie)
-	    area3 = 4.*ev(10,ie)
-	    do ii=1,3
+	    call get_vertex_area_of_element(ie,n,area)
+	    do ii=1,n
 	      z = zev(ii,ie)
-	      vol = area3
+	      vol = area
 	      vald(ib) = vald(ib) + vol*z
 	      vold(ib) = vold(ib) + vol
 	    end do
 	  !end if
 	end do
 
-	do ib=1,nbox
-	  if( vold(ib) .gt. 0. ) then
-	    val(ib) = vald(ib)/vold(ib)
-	  else
-	    val(ib) = 0.
-	  end if
-	end do
+	where( vold > 0. ) val = vald/vold
 
 	end
 
@@ -1192,21 +1187,19 @@ c computes average velocity values (speed) for box
 	double precision vold(0:nlvdim,nbxdim)
 
 	integer ib,ie,ii
-	integer lmax,l,k
-	real vol,area3
+	integer lmax,l,k,n
+	integer kn(3)
+	real vol,area
 
 	velspeed = 0.
 
-	do ib=1,nbox
-	  do l=0,nlvdim
-	    vald(l,ib) = 0.
-	    vold(l,ib) = 0.
-	  end do
-	end do
+	val = 0.
+	vald = 0.
+	vold = 0.
 
 	do ie=1,nel
 	  ib = iboxes(ie)
-	  area3 = 4.*ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  lmax = ilhv(ie)
 	  do l=1,lmax
 	    h = hdenv(l,ie)
@@ -1214,10 +1207,10 @@ c computes average velocity values (speed) for box
 	    v = vtlnv(l,ie)/h
 	    velspeed(l) = sqrt(u*u+v*v)
 	  end do
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  do ii=1,n
+	    k = kn(ii)
 	    do l=1,lmax
-	      vol = area3 * hdknv(l,k)
+	      vol = area * hdknv(l,k)
 	      vald(0,ib) = vald(0,ib) + vol*velspeed(l)
 	      vold(0,ib) = vold(0,ib) + vol
 	      vald(l,ib) = vald(l,ib) + vol*velspeed(l)
@@ -1226,15 +1219,7 @@ c computes average velocity values (speed) for box
 	  end do
 	end do
 
-	do ib=1,nbox
-	  do l=0,nlvdim
-	    if( vold(l,ib) .gt. 0. ) then
-	      val(l,ib) = vald(l,ib)/vold(l,ib)
-	    else
-	      val(l,ib) = 0.
-	    end if
-	  end do
-	end do
+	where( vold > 0. ) val = vald/vold
 
 	end
 
@@ -1262,24 +1247,22 @@ c computes average scalar values for box
 	double precision vald(0:nlvdim,nbxdim)
 	double precision vold(0:nlvdim,nbxdim)
 
-	integer ib,ie,lmax,l,ii,k
-	real vol,area3
+	integer ib,ie,lmax,l,ii,k,n
+	integer kn(3)
+	real vol,area
 
-	do ib=1,nbox
-	  do l=0,nlvdim
-	    vald(l,ib) = 0.
-	    vold(l,ib) = 0.
-	  end do
-	end do
+	val = 0.
+	vald = 0.
+	vold = 0.
 
 	do ie=1,nel
 	  ib = iboxes(ie)
-	  area3 = 4.*ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  lmax = ilhv(ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  do ii=1,n
+	    k = kn(ii)
 	    do l=1,lmax
-	      vol = area3
+	      vol = area
 	      vald(l,ib) = vald(l,ib) + vol*scalar(l,k)
 	      vold(l,ib) = vold(l,ib) + vol
 	    end do
@@ -1288,15 +1271,7 @@ c computes average scalar values for box
 
 	if( iaver .le. 0 ) return	!accumulate
 
-	do ib=1,nbox
-	  do l=0,nlvdim
-	    if( vold(l,ib) .gt. 0. ) then
-	      val(l,ib) = vald(l,ib)/vold(l,ib)
-	    else
-	      val(l,ib) = 0.
-	    end if
-	  end do
-	end do
+	where( vold > 0. ) val = vald/vold
 
 	end
 
@@ -1323,24 +1298,22 @@ c computes average scalar values for box
 	double precision vald(0:nlvdim,nbxdim)
 	double precision vold(0:nlvdim,nbxdim)
 
-	integer ib,ie,lmax,l,ii,k
-	real vol,area3
+	integer ib,ie,lmax,l,ii,k,n
+	integer kn(3)
+	real vol,area
 
-	do ib=1,nbox
-	  do l=0,nlvdim
-	    vald(l,ib) = 0.
-	    vold(l,ib) = 0.
-	  end do
-	end do
+	val = 0.
+	vald = 0.
+	vold = 0.
 
 	do ie=1,nel
 	  ib = iboxes(ie)
-	  area3 = 4.*ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  lmax = ilhv(ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  do ii=1,n
+	    k = kn(ii)
 	    do l=1,lmax
-	      vol = area3 * hdknv(l,k)
+	      vol = area * hdknv(l,k)
 	      vald(0,ib) = vald(0,ib) + vol*scalar(l,k)
 	      vold(0,ib) = vold(0,ib) + vol
 	      vald(l,ib) = vald(l,ib) + vol*scalar(l,k)
@@ -1349,15 +1322,7 @@ c computes average scalar values for box
 	  end do
 	end do
 
-	do ib=1,nbox
-	  do l=0,nlvdim
-	    if( vold(l,ib) .gt. 0. ) then
-	      val(l,ib) = vald(l,ib)/vold(l,ib)
-	    else
-	      val(l,ib) = 0.
-	    end if
-	  end do
-	end do
+	where( vold > 0. ) val = vald/vold
 
 	end
 
@@ -1375,38 +1340,32 @@ c computes average scalar values for box
 	include 'param.h'
 	include 'subboxa.h'
 
-	real scalar(*)
-	real val(*)
+	real scalar(nkndim)
+	real val(nbxdim)
 
 	double precision vald(nbxdim)
 	double precision vold(nbxdim)
 
-	integer ib,ie,ii,k
-	real vol,area3
+	integer ib,ie,ii,k,n
+	integer kn(3)
+	real vol,area
 
-	do ib=1,nbox
-	  vald(ib) = 0.
-	  vold(ib) = 0.
-	end do
+	val = 0.
+	vald = 0.
+	vold = 0.
 
 	do ie=1,nel
 	  ib = iboxes(ie)
-	  area3 = 4.*ev(10,ie)
-	  vol = area3
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
+	  vol = area
+	  do ii=1,n
+	    k = kn(ii)
 	    vald(ib) = vald(ib) + vol*scalar(k)
 	    vold(ib) = vold(ib) + vol
 	  end do
 	end do
 
-	do ib=1,nbox
-	  if( vold(ib) .gt. 0. ) then
-	    val(ib) = vald(ib)/vold(ib)
-	  else
-	    val(ib) = 0.
-	  end if
-	end do
+	where( vold > 0. ) val = vald/vold
 
 	end
 

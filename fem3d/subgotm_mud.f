@@ -1083,6 +1083,7 @@ c taub (stress at bottom) is accumulated and weighted by area
 
 
 	integer k,ie,ii,n,nlev,imud
+	integer kn(3)
 	real aj,taubot,getpar
 
 	real areaele
@@ -1093,10 +1094,8 @@ c	---------------------------------------------------
 c	initialize arrays
 c	---------------------------------------------------
 
-        do k=1,nkn
-          taub(k) = 0.
-          areaac(k) = 0.
-        end do
+        taub = 0.
+        areaac = 0.
  
 c	---------------------------------------------------
 c	accumulate
@@ -1105,30 +1104,26 @@ c	---------------------------------------------------
         if (imud == 0) then
           do ie=1,nel
  
-            !call elebase(ie,n,ibase)
-	    n = 3
-            aj = ev(10,ie)
+	    call get_vertex_area_of_element(ie,n,kn,area)
 	    nlev = ilhv(ie)
 
             taubot = czdef * ( ulnv(nlev,ie)**2 + vlnv(nlev,ie)**2 )
             do ii=1,n
-              k = nen3v(ii,ie)
-              taub(k) = taub(k) + taubot * aj
-              areaac(k) = areaac(k) + aj
+              k = kn(ii)
+              taub(k) = taub(k) + taubot * area
+              areaac(k) = areaac(k) + area
             end do
           end do
         else
           do ie=1,nel
-            !call elebase(ie,n,ibase)
-	    n = 3
-            aj = ev(10,ie)
+	    call get_vertex_area_of_element(ie,n,kn,area)
             nlev = ilhv(ie)
             do ii=1,n
-              k = nen3v(ii,ie)
+              k = kn(ii)
 !AR: take care with nlev assumed to be constant for the nodes
               call set_bottom_stress(k,taubot)
-              taub(k) = taub(k) + taubot * aj
-              areaac(k) = areaac(k) + aj
+              taub(k) = taub(k) + taubot * area
+              areaac(k) = areaac(k) + area
             end do
           end do
         endif
@@ -1137,94 +1132,7 @@ c	---------------------------------------------------
 c	compute bottom stress
 c	---------------------------------------------------
 
-        do k=1,nkn
-          if( areaac(k) .le. 0. ) stop 'error stop bnstress: (2)'
-          taub(k) = taub(k) / areaac(k)
-        end do
-
-	end
-
-c**************************************************************
-
-	subroutine notused
- 
-c this is evaluated for every element and then averaged for each node
-c the average is weigthed with the volume of each element
-c level l (for node) refers to interface between layers l and l+1
-c
-c taub (stress at bottom) is also accumulated and weighted by area
-
-	!implicit none
-
-	use mod_ts
-	use mod_hydro_vel
-	use levels
-	use basin
-
-	include 'param.h'
- 
-
- 
-        real shearf2(nlvdim,nkndim)
-        real buoyf2(nlvdim,nkndim)
-        real volf2(nlvdim,nkndim)
-        real taub(nkndim)
-        real areaac(nkndim)
- 
-
-	real h(nlvdim)
-
-	  czdef = getpar('czdef')
-
-        do k=1,nkn
-	  nlev = ilhkv(k)
-	  do l=1,nlev
-	    shearf2(l,k) = 0.
-	    volf2(l,k) = 0.
-	  end do
-          taub(k) = 0.
-          areaac(k) = 0.
-        end do
- 
-        do ie=1,nel
- 
-          call dep3dele(ie,+1,nlev,h)
-          !call elebase(ie,n,ibase)
-	  n = 3
-          area = areaele(ie)
-          arean = area/n
- 
-          do l=1,nlev-1
-            dh = 0.5 * (h(l)+h(l+1))
-            du = ulnv(l,ie) - ulnv(l+1,ie)
-            dv = vlnv(l,ie) - vlnv(l+1,ie)
-            m2 = (du**2 + dv**2) / dh**2
-            vol = dh * arean
-            do ii=1,n
-              k = nen3v(ii,ie)
-              shearf2(l,k) = shearf2(l,k) + m2 * vol
-              volf2(l,k) = volf2(l,k) + vol
-            end do
-          end do
- 
-          taubot = czdef * ( ulnv(nlev,ie)**2 + vlnv(nlev,ie)**2 )
-          do ii=1,n
-            k = nen3v(ii,ie)
-            taub(k) = taub(k) + taubot * arean
-            areaac(k) = areaac(k) + arean
-          end do
- 
-        end do
- 
-        do k=1,nkn
-          nlev = ilhkv(k)
-          do l=1,nlev-1
-            if( volf2(l,k) .le. 0. ) stop 'error stop ... (1)'
-            shearf2(l,k) = shearf2(l,k) / volf2(l,k)
-          end do
-          if( areaac(k) .le. 0. ) stop 'error stop ... (2)'
-          taub(k) = taub(k) / areaac(k)
-        end do
+	where( areaac > 0 ) taub = taub / areaac
 
 	end
 

@@ -67,12 +67,14 @@ c  1	spherical (lat/lon)
 
 	double precision, allocatable :: ev(:,:)
 
-        INTERFACE get_vertex_area_of_element
+        INTERFACE		 get_vertex_area_of_element
         MODULE PROCEDURE
      +                           get_vertex_area_of_element_r
      +                          ,get_vertex_area_of_element_d
      +                          ,get_vertex_area_of_element_kr
      +                          ,get_vertex_area_of_element_kd
+     +                          ,get_vertex_area_of_element_kbcr
+     +                          ,get_vertex_area_of_element_kbcd
         END INTERFACE
 
 !==================================================================
@@ -216,6 +218,60 @@ c****************************************************************
 	kn(1:n) = nen3v(1:n,ie)
 
 	end subroutine get_vertex_area_of_element_kd
+
+c****************************************************************
+
+	pure subroutine get_vertex_area_of_element_kbcr(ie,n,kn,b,c,area)
+
+	use basin
+
+	integer, intent(in)		:: ie
+	integer, intent(out)		:: n
+	integer, intent(out)		:: kn(:)
+	real, intent(out)		:: b(:)
+	real, intent(out)		:: c(:)
+	real, intent(out)		:: area
+
+	if( basin_element_is_1d(ie) ) then
+	  n = 2
+	  area = 3. * ev(10,ie)
+	else
+	  n = 3
+	  area = 4. * ev(10,ie)
+	end if
+
+	kn(1:n) = nen3v(1:n,ie)
+	b(1:n) = ev(3+1:3+n,ie)
+	c(1:n) = ev(6+1:6+n,ie)
+
+	end subroutine get_vertex_area_of_element_kbcr
+
+c****************************************************************
+
+	pure subroutine get_vertex_area_of_element_kbcd(ie,n,kn,b,c,area)
+
+	use basin
+
+	integer, intent(in)		:: ie
+	integer, intent(out)		:: n
+	integer, intent(out)		:: kn(:)
+	double precision, intent(out)	:: b(:)
+	double precision, intent(out)	:: c(:)
+	double precision, intent(out)	:: area
+
+	if( basin_element_is_1d(ie) ) then
+	  n = 2
+	  area = -1.
+	else
+	  n = 3
+	  area = 4. * ev(10,ie)
+	end if
+
+	kn(1:n) = nen3v(1:n,ie)
+	b(1:n) = ev(3+1:3+n,ie)
+	c(1:n) = ev(6+1:6+n,ie)
+
+	end subroutine get_vertex_area_of_element_kbcd
 
 !==================================================================
         end module evgeom

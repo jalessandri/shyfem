@@ -616,7 +616,10 @@ c local
         real wavefy(nlvdim,neldim)      !wave forcing term y
 
         double precision b,c           !x and y derivated form function [1/m]
+        double precision bb(3),cc(3)
+	double precision area
 	integer k,ie,ii,l,ilevel,n
+	integer kn(3)
         real radsx,radsy
 
   	call nantest(nkn*nlvdim,SXX3D,'SXX3D')
@@ -624,16 +627,16 @@ c local
 	call nantest(nkn*nlvdim,SYY3D,'SYY3D')
 
 	do ie = 1,nel
-	  n = basin_get_vertex_of_element(ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
 	  ilevel = ilhv(ie)
 	  do l=1,ilevel
 	    radsx = 0.
 	    radsy = 0.
 	    do ii = 1,n
-	      k = nen3v(ii,ie)
-              b = ev(3+ii,ie)
-              c = ev(6+ii,ie)
-	      radsx = radsx -(SXX3D(l,k)*b + SXY3D(l,k)*c)
+	      k = kn(ii)
+              b = bb(ii)
+              c = cc(ii)
+	      radsx = radsx -(SXX3D(l,k)*b + SXY3D(l,k)*c)	!FIXME_GGU
 	      radsy = radsy -(SXY3D(l,k)*b + SYY3D(l,k)*c)
 	    end do
 	  wavefx(l,ie) = -radsx
@@ -675,6 +678,7 @@ c local
         real stokesz(nlvdim,nkndim)	!z stokes velocity on node k
 	real hk(nlvdim)			!layer tickness on nodes
 	integer k,ie,ii,l,ilevel,n
+	integer kn(3)
 	real f				!Coriolis parameter on elements
 	real h				!layer thickness
 	real u,v			!velocities at level l and elements
@@ -684,6 +688,8 @@ c local
 	real auxx, auxy, aux		!auxiliary variables
 	real jbk			!integrated wave perssure term
         double precision b,c		!x and y derivated form function [1/m]
+        double precision bb(3),cc(3)
+	double precision area
 	real wavesx,wavesy
         real saux1(nlvdim,nkndim)
         real saux2(nlvdim,nkndim)
@@ -709,7 +715,7 @@ c local
 !       -----------------------------------------------
 
         do ie = 1,nel
-	  n = basin_get_vertex_of_element(ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
           ilevel = ilhv(ie)
 	  f = fcorv(ie)
           do l = 1,ilevel
@@ -722,10 +728,10 @@ c local
 	    u = ulnv(l,ie)
 	    v = vlnv(l,ie)
             do ii = 1,n
-              k = nen3v(ii,ie)
+              k = kn(ii)
 	      h = hdknv(l,k)
-              b = ev(3+ii,ie)
-              c = ev(6+ii,ie)
+              b = bb(ii)
+              c = cc(ii)
 	      stxk = stokesx(l,k) * h
 	      styk = stokesy(l,k) * h
 	      auxx = auxx + stxk
@@ -832,9 +838,12 @@ c local
 	real stokesz(0:nlvdim,nkndim) 	!z stokes velocity on node k
         logical debug
         integer k,ie,ii,kk,l,lmax,n
+	integer kn(3)
         integer ilevel
         double precision b,c            !x and y derivated form function [1/m]
-	real area,ff,atop,acu
+        double precision bb(3),cc(3)
+        double precision area
+	real ff,atop,acu
         logical is_zeta_bound,is_boundary_node
 
 c initialize
@@ -851,13 +860,13 @@ c initialize
 c compute difference of velocities for each layer
 
         do ie=1,nel
-	  call get_vertex_area_of_element(ie,n,area)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
           ilevel = ilhv(ie)
           do l=1,ilevel
             do ii=1,n
-               kk=nen3v(ii,ie)
-               b = ev(ii+3,ie)
-               c = ev(ii+6,ie)
+               kk=kn(ii)
+               b = bb(ii)
+               c = cc(ii)
                ff = stxe(l,ie)*b + stye(l,ie)*c
                vf(l,kk) = vf(l,kk) + 3. * area * ff
                va(l,kk) = va(l,kk) + area

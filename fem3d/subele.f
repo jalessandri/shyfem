@@ -569,6 +569,7 @@ c sets up area for nodes
 	use levels
 	use basin
 	use mod_area
+	use evgeom
 
 	implicit none
 
@@ -576,35 +577,21 @@ c sets up area for nodes
 	real area(levdim,nkn)
 
 	integer k,l,ie,ii
-	integer nlev,n
-	real areael,areafv
-	real areaele
+	integer lmax,n
+	integer kn(3)
+	real areafv
 
-	do k=1,nkn
-	  do l=1,levdim
-	    area(l,k) = 0.
-	  end do
-	end do
+	area = 0.
 
 	do ie=1,nel
-
-	  !call elebase(ie,n,ibase)
-	  n = 3
-	  areael = areaele(ie)
-	  areafv = areael / n
-
-	  nlev = ilhv(ie)
-
+	  call get_vertex_area_of_element(ie,n,kn,areafv)
+	  lmax = ilhv(ie)
 	  do ii=1,n
-
-	    k = nen3v(ii,ie)
-
-	    do l=1,nlev
+	    k = kn(ii)
+	    do l=1,lmax
 	      area(l,k) = area(l,k) + areafv
 	    end do
-
 	  end do
-
 	end do
 
 	call mod_area_set_filled
@@ -844,6 +831,7 @@ c sets up depth array for nodes
         logical bsigma
 	integer k,l,ie,ii
 	integer lmax,n,nlev,nsigma,levmin
+	integer kn(3)
 	real hfirst,hlast,h,htot,z,zmed,hm
 	real hacu,hlevel,hsigma,hsig
 
@@ -856,17 +844,8 @@ c----------------------------------------------------------------
 c initialize and copy
 c----------------------------------------------------------------
 
-	do k=1,nkn
-	  do l=1,levdim
-	    hdkn(l,k) = 0.
-	  end do
-	end do
-
-	do ie=1,nel
-	  do l=1,levdim
-	    hden(l,ie) = 0.
-	  end do
-	end do
+	hdkn = 0.
+	hden = 0.
 
 c----------------------------------------------------------------
 c compute volumes at node
@@ -878,10 +857,8 @@ c----------------------------------------------------------------
 
 	do ie=1,nel
 
-	  !call elebase(ie,n,ibase)
-	  n = 3
-	  areael = 12 * ev(10,ie)
-	  areafv = areael / n
+	  call get_vertex_area_of_element(ie,n,kn,areafv)
+	  areael = areafv * n
 
 	  lmax = ilhv(ie)
 	  hm = hev(ie)
@@ -893,7 +870,7 @@ c	  -------------------------------------------------------
 
 	  do ii=1,n
 
-	    k = nen3v(ii,ie)
+	    k = kn(ii)
 	    htot = hm3v(ii,ie)
 	    z = zenv(ii,ie)
 	    hsig = min(htot,hsigma) + z
@@ -960,13 +937,9 @@ c----------------------------------------------------------------
 	do k=1,nkn
 	  do l=levmin,levdim
 	    areafv = area(l,k)
-	    if( areafv .gt. 0. ) then
-	      hdkn(l,k) = hdkn(l,k) / areafv
-	    else
-	      goto 1		!no more layers
-	    end if
+	    if( areafv == 0. ) exit	!no more layers
+	    hdkn(l,k) = hdkn(l,k) / areafv
 	  end do
-    1	  continue
 	end do
 
 c----------------------------------------------------------------

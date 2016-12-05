@@ -71,23 +71,32 @@ c***********************************************************
         real, save, allocatable :: ygv(:)
         real, save, allocatable :: hm3v(:,:)
 
-        INTERFACE basin_read
-        MODULE PROCEDURE basin_read_by_file, basin_read_by_unit
+        INTERFACE		 basin_read
+        MODULE PROCEDURE 
+     +				 basin_read_by_file
+     +				,basin_read_by_unit
         END INTERFACE
 
-        INTERFACE basin_is_basin
-        MODULE PROCEDURE basin_is_basin_by_file,basin_is_basin_by_unit
+        INTERFACE		 basin_is_basin
+        MODULE PROCEDURE
+     +				 basin_is_basin_by_file
+     +				,basin_is_basin_by_unit
         END INTERFACE
 
-        INTERFACE basin_element_average
+        INTERFACE		 basin_element_average
         MODULE PROCEDURE
      +				 basin_element_average_2d
      +				,basin_element_average_3d
         END INTERFACE
 
-        INTERFACE basin_element_average2
+        INTERFACE		 basin_element_average2
         MODULE PROCEDURE
      +				 basin_element_average_2d_2var
+        END INTERFACE
+
+        INTERFACE		 basin_vertex_average
+        MODULE PROCEDURE
+     +				 basin_vertex_average_2d
         END INTERFACE
 
 !==================================================================
@@ -307,10 +316,7 @@ c***********************************************************
 	integer ii,n,k
 	real aver
 
-	n = 3
-	if( enable_1d .and. has_1d ) then
-	  if( nen3v(3,ie) == 0 ) n = 2
-	end if
+	n = basin_get_vertex_of_element(ie)
 
 	r1 = 0.
 	r2 = 0.
@@ -335,10 +341,7 @@ c***********************************************************
 	integer ii,n
 	real aver
 
-	n = 3
-	if( enable_1d .and. has_1d ) then
-	  if( nen3v(3,ie) == 0 ) n = 2
-	end if
+	n = basin_get_vertex_of_element(ie)
 
 	aver = 0.
 	do ii=1,n
@@ -363,10 +366,7 @@ c***********************************************************
 	integer ii,n
 	real aver
 
-	n = 3
-	if( enable_1d .and. has_1d ) then
-	  if( nen3v(3,ie) == 0 ) n = 2
-	end if
+	n = basin_get_vertex_of_element(ie)
 
 	aver = 0.
 	do ii=1,n
@@ -379,6 +379,22 @@ c***********************************************************
 	end function basin_element_average_3d
 
 c***********************************************************
+
+	pure function basin_vertex_average_2d(ie,val3)
+
+	real				:: basin_vertex_average_2d
+	integer, intent(in)		:: ie
+	real, intent(in)		:: val3(3,nel)
+
+	if( basin_element_is_1d(ie) ) then
+	  basin_vertex_average_2d = (val3(1,ie)+val3(2,ie))/2.
+	else
+	  basin_vertex_average_2d = (val3(1,ie)+val3(2,ie)+val3(3,ie))/3.
+	end if
+	  
+	end function basin_vertex_average_2d
+
+c***********************************************************
 c***********************************************************
 c***********************************************************
 
@@ -388,15 +404,7 @@ c***********************************************************
 	integer, intent(out)		:: n
 	integer, intent(out)		:: kn(:)
 
-	if( enable_1d .and. has_1d ) then
-	  if( nen3v(3,ie) == 0 ) then
-	    n = 2
-	  else
-	    n = 3
-	  end if
-	else
-	  n = 3
-	end if
+	n = basin_get_vertex_of_element(ie)
 
 	kn(1:n) = nen3v(1:n,ie)
 
@@ -435,6 +443,160 @@ c***********************************************************
 	end if
 
 	end function basin_element_is_1d
+
+c***********************************************************
+c***********************************************************
+c***********************************************************
+
+        pure function link_is_k(ii,ie,k)
+
+! true if nen3v(ii,ie) is k
+
+        logical link_is_k
+        integer, intent(in) :: ii,ie,k
+
+        link_is_k = ( nen3v(ii,ie) == k )
+
+        end function link_is_k
+
+!***********************************************************
+
+        pure function kiithis(ii,ie)
+
+! gets node at position ii in ie
+
+	integer		    :: kiithis
+        integer, intent(in) :: ii
+        integer, intent(in) :: ie
+
+	kiithis = nen3v(ii,ie)
+
+	end
+
+!***********************************************************
+
+        pure function kiinext(ii,ie)
+
+! gets node at position ii+1 in ie
+
+	integer		    :: kiinext
+        integer, intent(in) :: ii
+        integer, intent(in) :: ie
+
+	kiinext = nen3v(mod(ii,3)+1,ie)
+
+	end
+
+!***********************************************************
+
+        pure function kiibhnd(ii,ie)
+
+! gets node at position ii-1 in ie
+
+	integer		    :: kiibhnd
+        integer, intent(in) :: ii
+        integer, intent(in) :: ie
+
+	kiibhnd = nen3v(mod(ii+1,3)+1,ie)
+
+	end
+
+!***********************************************************
+
+        pure function iikthis(k,ie)
+
+! gets position of node k in ie
+
+	integer		    :: iikthis
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	integer ii
+
+	iikthis = 0
+
+        do ii=1,3
+          if( nen3v(ii,ie) .eq. k ) then
+            iikthis = ii
+            return
+          end if
+        end do
+
+	end
+
+!***********************************************************
+
+        pure function iiknext(k,ie)
+
+! gets next position of node k in ie
+
+	integer		    :: iiknext
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	integer ii
+
+	iiknext = 0
+
+        do ii=1,3
+          if( nen3v(ii,ie) .eq. k ) then
+            iiknext = mod(ii,3)+1
+            return
+          end if
+        end do
+
+	end
+
+!***********************************************************
+
+        pure function iikbhnd(k,ie)
+
+! gets back position of node k in ie
+
+	integer		    :: iikbhnd
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	integer ii
+
+	iikbhnd = 0
+
+        do ii=1,3
+          if( nen3v(ii,ie) .eq. k ) then
+            iikbhnd = mod(ii+1,3)+1
+            return
+          end if
+        end do
+
+	end
+
+!***********************************************************
+
+        pure function kknext(k,ie)
+
+! gets node after node k in ie
+
+	integer		    :: kknext
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	kknext = nen3v(iiknext(k,ie),ie)
+
+	end
+
+!***********************************************************
+
+        pure function kkbhnd(k,ie)
+
+! gets node before node k in ie
+
+	integer		    :: kkbhnd
+        integer, intent(in) :: k
+        integer, intent(in) :: ie
+
+	kkbhnd = nen3v(iikbhnd(k,ie),ie)
+
+	end
 
 !==================================================================
         end module basin

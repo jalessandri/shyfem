@@ -702,14 +702,11 @@ c set up zeta and conc for mass conservation test
 	use mod_hydro
 	use levels
 	use basin
+	use average
 
 	implicit none
 
-	include 'param.h'
-
 	integer it
-
-
 
 	integer k,ie,ii,n,ip,l
 	integer ntot,nlev
@@ -748,12 +745,7 @@ c set up zeta and conc for mass conservation test
 	  end do
 	end do
 
-	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    zenv(ii,ie) = znv(k)
-	  end do
-	end do
+	call node_to_vertex(znv,zenv)
 
 	call setweg(0,iw)
 
@@ -1292,13 +1284,11 @@ c computes residence time online - one value for whole lagoon
 	use mod_conz, only : cnv
 	use levels
 	use basin
+	use average
 
         implicit none
 
-        include 'param.h'
-
 	include 'femtime.h'
-
 
         integer ie,ii,k,lmax,l,ia
         logical bnoret,breset,bstir
@@ -1435,19 +1425,7 @@ c------------------------------------------------------------
 c flag nodes that are inside lagoon (v1v(k)=1)
 c------------------------------------------------------------
 
-        do k=1,nkn
-          v1v(k) = 0.
-        end do
-
-        do ie=1,nel
-          ia = iarv(ie)
-          if( ia .ne. iaout ) then
-              do ii=1,3
-                k = nen3v(ii,ie)
-                v1v(k) = 1.
-              end do
-          end if
-        end do
+	call create_node_indicator((iarv /= 0),v1v)
 
 c------------------------------------------------------------
 c reset concentrations
@@ -1705,6 +1683,7 @@ c*****************************************************************
 	use mod_conz
 	use levels
 	use basin
+	use average
 
         implicit none
 
@@ -1807,19 +1786,7 @@ c------------------------------------------------------------
 c total mass
 c------------------------------------------------------------
 
-        do k=1,nkn
-          v1v(k) = 0.
-        end do
-
-        do ie=1,nel
-          ia = iarv(ie)
-          if( ia .ne. 0 ) then
-              do ii=1,3
-                k = nen3v(ii,ie)
-                v1v(k) = 1.
-              end do
-          end if
-        end do
+	call create_node_indicator((iarv /= 0),v1v)
 
         mass = 0.
         masss = 0.
@@ -1941,6 +1908,7 @@ c*****************************************************************
 	use mod_hydro
 	use levels, only : nlvdi,nlv
 	use basin
+	use average
 
 	implicit none
 
@@ -1970,12 +1938,7 @@ c*****************************************************************
 	  znv(k) = z
 	end do
 
-	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    zenv(ii,ie) = znv(k)
-	  end do
-	end do
+	call node_to_vertex(znv,zenv)
 
 	call make_new_depth
 
@@ -2214,9 +2177,8 @@ c*****************************************************************
 
 	implicit none
 
-        include 'param.h'
-
-	integer ie,k,i,l,it
+	integer ie,k,i,l,it,n
+	integer kn(3)
         integer itype
 
 	integer icall
@@ -2227,9 +2189,10 @@ c*****************************************************************
 
         do l=1,nlv
              do ie=1,nel
+		call basin_get_vertex_nodes(ie,n,kn)
                 itype = iarv(ie)        
-               do i=1,3
-                        k=nen3v(i,ie)
+                do i=1,n
+                        k=kn(i)
                         if( itype .lt. 90) then
                           saltv(l,k)=30.
                           tempv(l,k)=14.
@@ -2250,6 +2213,7 @@ c*****************************************************************
 	subroutine zinit
 
 	use mod_hydro
+	use average
 	use basin
 
 	implicit none
@@ -2295,12 +2259,7 @@ c*****************************************************************
 	  znv(k) = z
 	end do
 
-	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    zenv(ii,ie) = znv(k)
-	  end do
-	end do
+	call node_to_vertex(znv,zenv)
 
 	end
 
@@ -2730,6 +2689,7 @@ c****************************************************************
 
 	use levels, only : nlvdi,nlv
 	use basin
+	use average
 
 	implicit none
 
@@ -2740,17 +2700,13 @@ c****************************************************************
 	real cv(nlvdi,nkn)
 	real zp
 
-	integer ii,k
 	real z(3)
 
 	call find_elem_from_old(ie,x,y,ie)
 
 	if( ie .le. 0 ) return
 
-	do ii=1,3
-	  k = nen3v(ii,ie)
-	  z(ii) = cv(1,k)
-	end do
+	call extract_on_vertices_3d(1,ie,cv,z)
 
 	call femintp(ie,z,x,y,zp)
 
@@ -3032,12 +2988,9 @@ c writes node list for Malta Coastal Model
 	use mod_depth
 	use levels
 	use basin
+	use average
 
 	implicit none
-
-        include 'param.h'
-
-
 
         integer k,l,ie,ii,i
 	integer nbc
@@ -3090,16 +3043,7 @@ c----------------------------------------------------------
 c get deepest depth on node
 c----------------------------------------------------------
 
-        do k = 1,nkn
-	  v1v(k) = -999.
-	end do
-
-        do ie = 1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    v1v(k) = max(v1v(k),hev(ie))
-	  end do
-	end do
+	call element_to_node(+1,hev,v1v)
 
 c----------------------------------------------------------
 c write out values for total domain
@@ -3209,6 +3153,7 @@ c introduce le condizioni iniziali per la concentrazione
 
 	use mod_conz
 	use basin
+	use average
 
         implicit none
 
@@ -3273,10 +3218,7 @@ c introduce le condizioni iniziali per la concentrazione
 	  y = yco(i)
 	  ie = iel(i)
 
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    cc(ii) = cnv(1,k)
-	  end do
+	  call extract_on_vertices_3d(1,ie,cnv,cc)
 
 	  call femintp(ie,cc,x0,y,ccc)
 
@@ -3418,21 +3360,17 @@ c**********************************************************************
         use levels, only : nlvdi,nlv
         use basin
         use evgeom
+        use average
 
         implicit none
-
-!       include 'param.h'
-!       include 'basin.h'
-!        include 'ev.h'
-!        include 'ts.h'
 
         integer k,l,ii,ie
         real rgil,rmed,rbla,rmar     !relaxaxion factors
         real rop,rco            !relaxaxion factor for open sea and coast
 
-        real, save, allocatable :: tau(:)
-        real, save, allocatable :: rtd(:)
-        real, save, allocatable :: ark(:)
+        real, save, allocatable :: tau(:)	!FIXME_GGU why saved?
+        real, save, allocatable :: rtd(:)	!used somewhere else?
+        real, save, allocatable :: tel(:)
         real area,areal,areak
         real ttt
 	real xe,ye
@@ -3475,20 +3413,15 @@ c**********************************************************************
         icall = 1
 
         allocate(tau(nkn))
-        allocate(ark(nkn))
         allocate(rtd(nkn))
-
-        do k = 1,nkn
-          tau(k) = 0.
-          ark(k) = 0.
-        end do
+        allocate(tel(nel))
 
         !-------------------------------------------
         ! Set relaxation based on type and element size
         !-------------------------------------------
         do ie = 1,nel
           iet = iarv(ie)
-          area = 12. * ev(10,ie)
+          area = get_total_area_of_element(ie)
 	  call baric(ie,xe,ye)
           if ( iet .eq. 1 ) then        !black sea
             areal = 1E+07               !average element are in the open sea
@@ -3542,19 +3475,19 @@ c**********************************************************************
           end if
           !write(222,*)ie,iet,area,areal,ttt
 
-          do ii = 1,3
-            k = nen3v(ii,ie)
-            areak = area / 3.
-            ark(k) = ark(k) + areak
-            tau(k) = tau(k) + ttt*areak
-          end do
+	  tel(ie) = ttt
         end do
+
+        !-------------------------------------------
+        ! average on node
+        !-------------------------------------------
+
+	call element_to_node(tel,tau)
 
         !-------------------------------------------
         ! Set variables ttauv and stauv
         !-------------------------------------------
         do k = 1,nkn
-          tau(k) = tau(k) / ark(k)
           rtd(k) = tau(k)/86400.
           if ( surface ) then
             ttauv(1,k) = 1. / tau(k)
@@ -3759,6 +3692,7 @@ c time of inundation for theseus
 	use mod_ts
 	use evgeom
 	use basin
+	use average
 
 	implicit none
 
@@ -3776,6 +3710,7 @@ c time of inundation for theseus
 	integer, save, allocatable :: idry(:)
 	double precision, save, allocatable :: salt_aver_k(:)
 	real, save, allocatable :: salt_aver_e(:)
+	real aux(nkn)
 
 	real, save :: sedim_save = 0.
 	integer, save :: isum = 0
@@ -3853,16 +3788,9 @@ c-----------------------------------------
 	  write(iu124,*) (idry(ie),ie=1,nel)
 
 	  do k=1,nkn
-	    salt_aver_k(k) = salt_aver_k(k) / isum
+	    aux(k) = salt_aver_k(k) / isum
 	  end do
-	  do ie=1,nel
-	    s = 0.
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      s = s + salt_aver_k(k)
-	    end do
-	    salt_aver_e(ie) = s / 3.
-	  end do
+	  call node_to_element(aux,salt_aver_e)
 	  if( iu127 == 0 ) iu127 = ifemop('.127','form','new')
 	  if( iu128 == 0 ) iu128 = ifemop('.128','form','new')
 	  write(iu127,*) icall,nel,it,idtwrite
@@ -4159,7 +4087,8 @@ c momentum input for yaron
 
         implicit none
 
-        integer kin,lin,ie,ii,k,lmax,nelem
+        integer kin,lin,ie,ii,k,lmax,nelem,n
+	integer kn(3)
         real rnx,rny,rfact,q,area,h,fact
 
         kin = 3935
@@ -4177,9 +4106,10 @@ c momentum input for yaron
 
         do ie=1,nel
           lmax = ilhv(ie)
-          area = 12. * ev(10,ie)
-          do ii=1,3
-            k = nen3v(ii,ie)
+	  call get_vertex_area_of_element_kr(ie,n,kn,area)
+          area = n * area	!total area of element
+          do ii=1,n
+            k = kn(ii)
             if( k .eq. kin .and. lmax .le. lin ) then
               h = hdeov(lin,ie)
               fact = rfact * q*q / (h*area*sqrt(area)*nelem)

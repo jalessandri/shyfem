@@ -5,10 +5,6 @@ c utility routines for fem model
 c
 c contents :
 c
-c subroutine baric(ie,x,y)		finds baricentre of element
-c subroutine coord(k,x,y)		returns coordinates of node k (internal)
-c function area_element(ie)		area for element ie (internal)
-c
 c function ipext(k)             returns extern node number
 c function ieext(k)             returns extern element number
 c function ipint(k)             returns intern node number
@@ -24,43 +20,9 @@ c 24.02.1999	ggu	new subroutine n2int
 c 19.11.1999	ggu	new subroutine e2int
 c 27.01.2009	ggu	new subroutine coord
 c 07.07.2011	ggu	new subroutine area_element()
+c 03.12.2016	ggu	area_element(), coord(), baric() eliminated
+c 04.12.2016	ggu	newly introduced getxy, getexy, baric
 c
-c*******************************************************
-
-	subroutine baric(ie,x,y)
-
-c finds baricentre of element
-c
-c ie		number of element
-c x,y		coordinates of baricentre (return value)
-
-	use basin
-
-	implicit none
-
-	integer ie
-	real x,y
-
-	call basin_element_average_2d_2var(ie,xgv,ygv,x,y)
-
-	end
-
-	subroutine coord(k,x,y)
-
-c returns coordinates of node k (internal)
-
-	use basin
-
-	implicit none
-
-	integer k
-	real x,y
-
-	x = xgv(k)
-	y = ygv(k)
-
-	end
-
 c***************************************************************
 c
 	function ipext(k)
@@ -160,6 +122,8 @@ c
 	end
 
 c***************************************************************
+c***************************************************************
+c***************************************************************
 
 	subroutine n2int(n,nnodes,berror)
 
@@ -216,6 +180,74 @@ c converts external element numbers to internal ones
 	end do
 
 	end
+
+c***************************************************************
+c***************************************************************
+c***************************************************************
+
+        subroutine getxy(k,x,y)
+
+c gets coordinates x/y for node k
+
+        use basin
+
+        implicit none
+
+        integer k
+        real x,y
+
+        x = xgv(k)
+        y = ygv(k)
+
+        end
+
+c***************************************************************
+
+        subroutine getexy(ie,x,y)
+
+c gets coordinates x/y for element ie
+
+        use basin
+
+        implicit none
+
+        integer ie
+        real x(3), y(3)
+
+        integer k,ii,n
+        integer kn(3)
+
+        x = 0.
+        y = 0.
+        call basin_get_vertex_nodes(ie,n,kn)
+
+        do ii=1,n
+          k = kn(ii)
+          x(ii) = xgv(k)
+          y(ii) = ygv(k)
+        end do
+
+        end
+
+c***************************************************************
+
+        subroutine baric(ie,x,y)
+
+c finds baricentre of element
+c
+c ie            number of element
+c x,y           coordinates of baricentre (return value)
+
+        use basin
+
+        implicit none
+
+        integer ie
+        real x,y
+
+        call basin_element_average_2d_2var(ie,xgv,ygv,x,y)
+
+        end
 
 c***************************************************************
 

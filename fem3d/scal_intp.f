@@ -194,7 +194,7 @@ c******************************************************************
 	  if( mode .eq. 1 ) then
             read(1,*,end=2) k,val
 	    ki = ipint(k)
-	    call coord(ki,x,y)
+	    call getxy(ki,x,y)
 	  else
             read(1,*,end=2) x,y,val
 	  end if

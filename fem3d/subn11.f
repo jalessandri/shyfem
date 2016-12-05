@@ -676,7 +676,6 @@ c******************************************************************
 c initializes flux boundary
 
 	use mod_bound_geom
-	use mod_link
 	use basin
 
 	implicit none

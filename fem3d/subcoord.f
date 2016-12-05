@@ -191,16 +191,7 @@
         integer			:: ii,k
         real			:: xb,yb
 
-        xb = 0.
-        yb = 0.
-        do ii=1,3
-            k  = nen3v(ii,ie)
-            xb = xb + xcartv(k)
-            yb = yb + ycartv(k)
-        end do
-
-        x = xb/3.
-        y = yb/3.
+	call basin_element_average_2d_2var(ie,xgv,ygv,x,y)
 
         end subroutine baric_cart
 
@@ -217,10 +208,15 @@
         integer, intent(in)	 	:: ie
         real, intent(out), dimension(3) :: x, y
 
-        integer :: k,ii
+        integer :: k,ii,n
+        integer :: kn(3)
 
-        do ii=1,3
-            k = nen3v(ii,ie)
+        x = 0.
+        y = 0.
+        call basin_get_vertex_nodes(ie,n,kn)
+
+        do ii=1,n
+            k = kn(ii)
             x(ii) = xcartv(k)
             y(ii) = ycartv(k)
         end do

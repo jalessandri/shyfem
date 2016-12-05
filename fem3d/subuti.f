@@ -34,7 +34,7 @@ c 29.04.2015    ggu     energy now in Joule
 c
 c******************************************
 
-	subroutine getxy(k,x,y)
+	subroutine getxy0(k,x,y)
 
 c gets coordinates x/y for node k
 
@@ -52,7 +52,7 @@ c gets coordinates x/y for node k
 
 c******************************************
 
-	subroutine getexy(ie,x,y)
+	subroutine getexy0(ie,x,y)
 
 c gets coordinates x/y for element ie
 
@@ -80,6 +80,26 @@ c gets coordinates x/y for element ie
 
 c******************************************
 
+        subroutine baric0(ie,x,y)
+
+c finds baricentre of element
+c
+c ie            number of element
+c x,y           coordinates of baricentre (return value)
+
+        use basin
+
+        implicit none
+
+        integer ie
+        real x,y
+
+        call basin_element_average_2d_2var(ie,xgv,ygv,x,y)
+
+        end
+
+c******************************************
+
 	function areael(ie)
 
 c area for element ie
@@ -94,32 +114,22 @@ c arguments
 	real areael
 	integer ie
 c local
-	integer kn1,kn2,kn3
-	real*8 x1,x2,x3,y1,y2,y3
-	real*8 a1,a2,a3
-	real*8 half
+	integer n,kn(3)
+	double precision x1,x2,x3,y1,y2,y3
+	double precision, parameter :: half = 0.5
 
-	if( basin_element_is_1d(ie) ) then
-	  stop 'error stop areael: not ready'
+	call basin_get_vertex_nodes(ie,n,kn)
+
+	if( n /= 3 ) then
+	  stop 'error stop areael: not ready'	!FIXME_GGU
 	end if
 
-	half = 0.5
-
-	kn1=nen3v(1,ie)
-	kn2=nen3v(2,ie)
-	kn3=nen3v(3,ie)
-
-	x1=xgv(kn1)
-	y1=ygv(kn1)
-	x2=xgv(kn2)
-	y2=ygv(kn2)
-	x3=xgv(kn3)
-	y3=ygv(kn3)
-
-	!a1=x2*y3-x3*y2
-	!a2=x3*y1-x1*y3
-	!a3=x1*y2-x2*y1
-	!areael = half*(a1+a2+a3)
+	x1=xgv(kn(1))
+	y1=ygv(kn(1))
+	x2=xgv(kn(2))
+	y2=ygv(kn(2))
+	x3=xgv(kn(3))
+	y3=ygv(kn(3))
 
 	areael = half * ( (x2-x1) * (y3-y1) - (x3-x1) * (y2-y1) )
 
@@ -132,7 +142,6 @@ c******************************************
 c area for finite volume k
 
 	use mod_geom
-	use mod_link
 	use evgeom
 	use basin
 
@@ -189,7 +198,6 @@ c formula for 1D:            Q =  6 * aj *   b(n)*U
 c volume difference:         dV = dt * Q
 
 	use mod_geom
-	use mod_link
 	use mod_hydro_baro
 	use evgeom
 	use basin
@@ -404,12 +412,13 @@ c copies concentrations from node value to element value (only wet areas)
         real ce(3,nel)
 
         integer ie,ii,k,n
+	integer kn(3)
 
         do ie=1,nel
           if( iwegv(ie) > 0 ) cycle
-	  n = basin_get_vertex_of_element(ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
           do ii=1,n
-            k = nen3v(ii,ie)
+            k = kn(ii)
             ce(ii,ie) = cn(k)
           end do
 	  if( n == 2 ) then

@@ -113,11 +113,12 @@ c
 c arguments
         integer iweich,iw
 c local
-        integer ie,ii,iwh,iweg,k,iu
+        integer ie,ii,iwh,iweg,k,iu,n
         integer iespec,iwait,iwet
 	integer nlv,nsigma
+	integer kn(3)
 	real hsigma
-        real hzg,hzmin,hzoff,hzon,volmin,aomega,zmin
+        real hzg,hzmin,hzoff,hzon,volmin,area,zmin
 	real hzlim,hztot
 	character*10 text
 c functions
@@ -178,17 +179,17 @@ c	integer iz(30),ih(30),izh(30),ix(30),ixx(30)
           end do
         else if(iweich.eq.0) then               !first call
           do ie=1,nel
-            aomega=ev(10,ie)
-            zmin=hzmin+volmin/(4.*aomega)
+	    call get_vertex_area_of_element(ie,n,kn,area)
+            zmin=hzmin+volmin/area
             if(zmin.gt.hzoff) zmin=hzmin+0.5*(hzmin+hzoff) !just in case...
 
             iweg=0
-            do ii=1,3
+            do ii=1,n
               hzg = zenv(ii,ie) + hm3v(ii,ie)
               if(hzg.lt.hzoff) iweg=iweg+1
               if(hzg.lt.zmin) then
 		zenv(ii,ie)=zmin-hm3v(ii,ie)
-	        if( bsigma ) znv(nen3v(ii,ie)) = zenv(ii,ie)
+	        if( bsigma ) znv(kn(ii)) = zenv(ii,ie)
 	      end if
             end do
 	    if( bsigma ) iweg = 0
@@ -205,14 +206,15 @@ c	integer iz(30),ih(30),izh(30),ix(30),ixx(30)
 	  end if
           do ie=1,nel
 	   if( iwegv(ie) .eq. 0 ) then
+	    call basin_get_vertex_nodes(ie,n,kn)
             debug = ie .eq. iespec
             iweg=0
-            do ii=1,3
-              hzg = znv(nen3v(ii,ie)) + hm3v(ii,ie)
+            do ii=1,n
+              hzg = znv(kn(ii)) + hm3v(ii,ie)
               if(hzg.lt.hzlim) iweg=iweg+1
               if(debug .or. bdebug.and.hzg.lt.hzlim) then
                       write(iu,*) text,ie,iweg,hzg
-                      write(iu,*) znv(nen3v(ii,ie)),hm3v(ii,ie)
+                      write(iu,*) znv(kn(ii)),hm3v(ii,ie)
               end if
             end do
             if(iweg.gt.0) then		!case h1/h2
@@ -229,20 +231,21 @@ c	integer iz(30),ih(30),izh(30),ix(30),ixx(30)
         else if(iweich.eq.3) then               !only add
           do ie=1,nel
 	   if( iwegv(ie) .gt. 0 ) then
+	    call basin_get_vertex_nodes(ie,n,kn)
             debug = ie .eq. iespec
             iweg=0
 	    hztot = 0.
-            do ii=1,3
-              hzg = znv(nen3v(ii,ie)) + hm3v(ii,ie)
+            do ii=1,n
+              hzg = znv(kn(ii)) + hm3v(ii,ie)
 	      hztot = hztot + hzg
               if(hzg.lt.hzon) iweg=iweg+1 !$$hzon ...(220792)
               if(debug .or. bdebug.and.hzg.lt.hzon) then
-		      k = nen3v(ii,ie)
+		      k = kn(ii)
                       write(iu,*) 'setweg 3: ',ie,ii,k,iweg,hzg
-                      write(iu,*) znv(nen3v(ii,ie)),hm3v(ii,ie)
+                      write(iu,*) znv(kn(ii)),hm3v(ii,ie)
               end if
             end do
-	    hztot = hztot / 3.
+	    hztot = hztot / n
 	    !binclude = hztot .ge. hzon
 	    binclude = hztot .ge. hzon .and. -iwetv(ie) .gt. iwait
 c %%%%%%%%% this is wrong -> test also for iweg > 0	!FIXME
@@ -287,8 +290,8 @@ c %%%%%%%%% this is wrong -> test also for iweg > 0	!FIXME
 	write(6,*) 'drying is not allowed...'
 	write(6,*) iweich,ie,iwh,iwegv(ie)
 	write(6,*) hzmin,hzoff,hzon,volmin
-        do ii=1,3
-	  k = nen3v(ii,ie)
+        do ii=1,n
+	  k = kn(ii)
           hzg = znv(k) + hm3v(ii,ie)
 	  write(6,*) ii,k,znv(k),hzg
 	  write(6,*) '     ',zenv(ii,ie),hm3v(ii,ie)
@@ -548,19 +551,11 @@ c sets array zenv from znv
 	use mod_geom_dynamic
 	use mod_hydro
 	use basin
+	use average
 
         implicit none
 
-c local
-        integer ie,ii
-
-        do ie=1,nel
-          if(iwegv(ie).eq.0) then !element is in system
-            do ii=1,3
-              zenv(ii,ie)=znv(nen3v(ii,ie))
-            end do
-          end if
-	end do
+	call node_to_vertex(znv,(iwegv==0),zenv)
 
         end
 
@@ -580,7 +575,8 @@ c sets array znv from zenv
 	include 'mkonst.h'
 
 c local
-        integer ie,ii,k
+        integer ie,ii,k,n
+	integer kn(3)
         integer ntot
 	real z,area
 	real v1v(nkn),v2v(nkn)
@@ -600,21 +596,20 @@ c set znv and accumulate
 c-------------------------------------------------------------
 
         do ie=1,nel
+	  call get_vertex_area_of_element(ie,n,kn,area)
           if( iwegv(ie) .eq. 0 ) then		!element is in system
-            do ii=1,3
-	      k = nen3v(ii,ie)
+            do ii=1,n
+	      k = kn(ii)
               z = zenv(ii,ie)
 	      if( znv(k) .ne. flag .and. znv(k) .ne. z ) then   !restart
                 ntot = ntot + 1
-                write(6,*) 'n,ie,ii,k,z,znv(k) ',ntot,ie,ii,k,z,znv(k)
                 z=max(z,znv(k))         !using higher value
               end if
 	      znv(k) = z
             end do
 	  else					!out of system
-	    area = 4. * ev(10,ie)
-            do ii=1,3
-	      k = nen3v(ii,ie)
+            do ii=1,n
+	      k = kn(ii)
               z = zenv(ii,ie)
 	      v1v(k) = v1v(k) + z * area
 	      v2v(k) = v2v(k) + area
@@ -626,11 +621,7 @@ c-------------------------------------------------------------
 c compute znv for dry areas
 c-------------------------------------------------------------
 
-	do k=1,nkn
-	  if( znv(k) .eq. flag ) then		!out of system
-	    znv(k) = v1v(k) / v2v(k)
-	  end if
-	end do
+	where( znv == flag ) znv = v1v / v2v
 
 c-------------------------------------------------------------
 c write debug status
@@ -673,46 +664,42 @@ c
 c arguments
         real zv(1),av(1)
 c local
-        integer ie,i,k
-        real aomega
+        integer ie,i,k,n
+	integer kn(3)
+        real area
 c functions
         logical isein
         isein(ie) = iwegv(ie).eq.0
 
 c initialize aux vectors
 
-        do k=1,nkn
-          zv(k)=0.
-          av(k)=0.
-        end do
+        zv=0.
+        av=0.
 
 c accumulate contributions
 
         do ie=1,nel
           if(isein(ie)) then
-            aomega=ev(10,ie)
-            do i=1,3
-              k=nen3v(i,ie)
-              zv(k)=zv(k)+aomega*zenv(i,ie)
-              av(k)=av(k)+aomega
+	    call get_vertex_area_of_element(ie,n,kn,area)
+            do i=1,n
+              k=kn(i)
+              zv(k)=zv(k)+area*zenv(i,ie)
+              av(k)=av(k)+area
             end do
           end if
         end do
 
 c scaling of z values with weighting functions
 
-        do k=1,nkn
-          if(av(k).gt.0.) then
-            zv(k)=zv(k)/av(k)
-          end if
-        end do
+	where( av > 0 ) zv = zv / av
 
 c write back to original vector zenv
 
         do ie=1,nel
           if(isein(ie)) then
-            do i=1,3
-              zenv(i,ie)=zv(nen3v(i,ie))
+	    call basin_get_vertex_nodes(ie,n,kn)
+            do i=1,n
+              zenv(i,ie)=zv(kn(i))
             end do
           end if
         end do

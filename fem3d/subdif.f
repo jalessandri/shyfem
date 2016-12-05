@@ -26,65 +26,6 @@ c 16.02.2011    ggu     in diffweight() use double precision
 c 01.06.2011    ggu     bug fix in green() -> i instead ii
 c 18.09.2015    ggu     austau() not used anymore - eliminated
 c
-c*****************************************************************
-
-        subroutine diffstab(dt,rk,istot,v1v,v2v,gamma)
-
-c checks stability of diffusion (old, not used)
-
-	use evgeom
-	use basin
-
-        implicit none
-
-        real dt
-        real rk
-        integer istot
-        real v1v(1),v2v(1)
-        real gamma              !stability parameter -> must be < 1.
-
-	include 'param.h'
-
-        integer k,ie,ii
-        real alpha,beta,area,b,c,bmin,bmax
-        real rkmin,rkmax
-
-        do k=1,nkn
-          v1v(k) = 0.
-          v2v(k) = 0.
-        end do
-
-        alpha = 3. * dt * rk
-
-        do ie=1,nel
-          area = 12. * ev(10,ie)
-          do ii=1,3
-            k = nen3v(ii,ie)
-            b = ev(3+ii,ie)
-            c = ev(6+ii,ie)
-            v1v(k) = v1v(k) + area * ( b*b + c*c )
-            v2v(k) = v2v(k) + area
-          end do
-        end do
-
-        bmin = 1.e+30
-        bmax = -bmin
-
-        do k=1,nkn
-          beta = v1v(k) / v2v(k)
-          bmax = max(bmax,beta)
-          bmin = min(bmin,beta)
-        end do
-
-        rkmax = 1. / (3.*dt*bmin)
-        rkmin = 1. / (3.*dt*bmax)
-
-        gamma = alpha * bmax / istot
-
-        write(6,*) 'diffstab: ',dt,rk,rkmin,rkmax,gamma
-
-        end
-
 c*************************************************************
 
         subroutine diffstab1(dt,rkv,istot,v1v,v2v,gamma)
@@ -102,10 +43,9 @@ c checks stability of diffusion (with variable diffusion coef.)
         real v1v(1),v2v(1)
         real gamma              !stability parameter -> must be < 1.
 
-	include 'param.h'
-
-        integer k,ie,ii
-        real alpha,beta,area,b,c,bmin,bmax
+        integer k,ie,ii,n
+	integer kn(3)
+        real alpha,beta,area,areael,b,c,bmin,bmax
         real rkmin,rkmax
 
         do k=1,nkn
@@ -114,13 +54,14 @@ c checks stability of diffusion (with variable diffusion coef.)
         end do
 
         do ie=1,nel
-          alpha = 3. * dt * rkv(ie)
-          area = 12. * ev(10,ie)
-          do ii=1,3
-            k = nen3v(ii,ie)
+	  call get_vertex_area_of_element_kr(ie,n,kn,area)
+	  areael = n * area
+          alpha =  areael * dt * rkv(ie)
+          do ii=1,n
+            k = kn(ii)
             b = ev(3+ii,ie)
             c = ev(6+ii,ie)
-            v1v(k) = v1v(k) + alpha * area * ( b*b + c*c )
+            v1v(k) = v1v(k) + alpha * ( b*b + c*c )
             v2v(k) = v2v(k) + area
           end do
         end do
@@ -153,8 +94,6 @@ c weights in main diagonal are positive => weights out of diag are negative
 	use basin
 
         implicit none
-
-	include 'param.h'
 
 	logical bdebug,berror
         integer k,ie,ii,iii,i
@@ -341,13 +280,12 @@ c limits diffusion parameter
         implicit none
 
         real dt
-        real rkv(1)
+        real rkv(nel)
         integer istot
         real gammax             !max for stability parameter, should be < 1
 
-	include 'param.h'
-
-        integer k,ie,ii
+        integer k,ie,ii,n
+	integer kn(3)
         integer nchange
         real gamma,rk
         real alpha,beta,area,b,c,bmin,bmax
@@ -358,11 +296,12 @@ c limits diffusion parameter
         rkmax = rkv(1)
 
         do ie=1,nel
+	  call get_vertex_area_of_element_kr(ie,n,kn,area)
           beta = 0.
           rk = rkv(ie)
-          alpha = 3. * dt * rk
-          do ii=1,3
-            k = nen3v(ii,ie)
+          alpha = n * dt * rk
+          do ii=1,n
+            k = kn(ii)
             b = ev(3+ii,ie)
             c = ev(6+ii,ie)
             beta = max( beta , alpha * ( b*b + c*c ) )
@@ -396,8 +335,6 @@ c adjusts diffusion coefficient
 
         integer mode
         real rkv(1)
-
-	include 'param.h'
 
         integer k,ie,ii
         real h,aux,fact
@@ -649,24 +586,18 @@ c***************************************************************************
 
         implicit none
 
-        include 'param.h'
-        
-	include 'femtime.h'
-        
-        
+        integer k,l,ie,ii,lmax,n
+	integer kn(3)
         real b(3),c(3),ux,uy,vx,vy
-        real dt,ds,dd,dl,aj
-
 	real area,smag
-        
-        integer k,l,ie,ii,lmax
         
 c the FEM method gives for Ux(ie)=unv(ie)*b and for Uy(ie)=unv(ie)*c
        
         do ie=1,nel
           
+	 call get_vertex_area_of_element(ie,n,kn,b,c,area)
+         area = n * area
 	 lmax = ilhv(ie)
-         area = 12. * ev(10,ie)
          
 c compute the spatial derivates of horizontal velocity        
          
@@ -678,9 +609,7 @@ c compute the spatial derivates of horizontal velocity
            vy=0.
                      
            do ii=1,3
-             k=nen3v(ii,ie)
-             b(ii)=ev(ii+3,ie)
-             c(ii)=ev(ii+6,ie)
+             k=kn(ii)
              ux=ux+(uprv(l,k)*b(ii))
              uy=uy+(uprv(l,k)*c(ii))
              vx=vx+(vprv(l,k)*b(ii))
@@ -695,28 +624,6 @@ c compute the spatial derivates of horizontal velocity
          end do
         end do
 
-c old part -> deleted
-c
-c computing of Dt tension strain and Ds shearing strain
-c           dt=ux-vy
-c           ds=vx+uy
-c           dd=sqrt((dt**2)+(ds**2))
-c
-c computing the length scale of the ie-element
-c
-c           aj=ev(10,ie)
-c           dl=(sqrt(12*aj))/pi
-c
-c computing horizontal diffusivity Ahg
-c
-c           ahg(l,ie)=((CD*dl)**2)*dd     
-c
-c computing horizontal viscosity Amg
-c
-c           amg(l,ie)=cvd*ahg(l,ie)
-c           write(92,*)dl,ahg(l,ie)
-         
-	return
         end 
 
 c***********************************************************************
@@ -739,9 +646,6 @@ c ieltv:  >0 element  0: boundary  -1: open boundary
 	integer l
 	real ugreen,vgreen	!contribution to integral from green formula
 
-	include 'param.h'
-
-
 	integer k,i,ii,iii,ienb,i1,i2
 	real dl(3)
 	real x(3),y(3)
@@ -753,6 +657,12 @@ c ieltv:  >0 element  0: boundary  -1: open boundary
 	real x1,y1,x2,y2
 	real distance
 	distance(x1,y1,x2,y2) = sqrt((x1-x2)**2+(y1-y2)**2)
+
+c------------------------------------------------------------
+c nothing to do for 1D elements
+c------------------------------------------------------------
+
+	if( basin_element_is_1d(ie) ) return
 
 c------------------------------------------------------------
 c get transports
@@ -769,12 +679,7 @@ c	---------------------------------------------
 c	center point
 c	---------------------------------------------
 
-	do ii=1,3
-	  k = nen3v(ii,ie)
-	  x(ii) = xgv(k)
-	  y(ii) = ygv(k)
-	end do
-
+	call getexy(ie,x,y)
 	call baric(ie,xm,ym)
 
 c	---------------------------------------------

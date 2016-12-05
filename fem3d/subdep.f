@@ -6,8 +6,6 @@ c
 c contents :
 c
 c function igtdep(k,f)                  get depth for node
-c function igtdpa(mode,h)               gets unique depth for all nodes
-c subroutine huniqu(hev,hkv)            make depth unique for every node
 c subroutine makehev(hev)		makes hev (elementwise depth)
 c subroutine makehkv(hkv)		makes hkv (nodewise depth)
 c subroutine depadj(hmin,hmax,href)	adjusts depth to ref/min/max values
@@ -57,8 +55,8 @@ c revised 29.06.97 by ggu	$$ndim - dimension of f is passed
 
 	iact=0
 	do ie=1,nel
-	  do ii=1,3
-	    if(nen3v(ii,ie).eq.k) then
+	  ii = iikthis(k,ie)
+	  if( ii /= 0 ) then
 		do i=1,iact
 		    if(f(i).eq.hm3v(ii,ie)) goto 1
 		end do
@@ -68,8 +66,7 @@ c revised 29.06.97 by ggu	$$ndim - dimension of f is passed
 		f(iact)=hm3v(ii,ie)
 
     1           continue       			!old depth
-	    end if
-	  end do
+	  end if
 	end do
 
 	igtdep=iact
@@ -77,151 +74,6 @@ c revised 29.06.97 by ggu	$$ndim - dimension of f is passed
 	return
    99	continue
 	stop 'error stop igtdep : nmax'		!$$nmax
-	end
-
-c********************************************************************
-
-	function igtdpa(mode,h)
-
-c gets unique depth for all nodes
-c
-c mode          switch
-c               1       deepest value is returned
-c               -1      most shallow value
-c h             vector in which the depth values are
-c               ...stored (return value)
-c igtdpa        return status
-c               1       unique depth
-c               0       no unique depth
-c               -1      error
-
-	use basin
-
-	implicit none
-
-	integer igtdpa
-	integer mode
-	real h(nkn)
-
-	real high
-	parameter(high=1.e+30)
-
-	logical buniq
-	integer ie,ii,i,k
-	real hh,hhh,hflag
-
-	buniq=.true.
-
-	if(mode.eq.1) then
-		hflag=-high
-	else if(mode.eq.-1) then
-		hflag=high
-	else
-		write(6,*) 'Value for mode not allowed :',mode
-		igtdpa=-1
-		return
-	end if
-
-	do i=1,nkn
-	   h(i)=hflag
-	end do
-
-	do ie=1,nel
-	 do ii=1,3
-	   k=nen3v(ii,ie)
-	   hh=hm3v(ii,ie)
-	   hhh=h(k)
-	   if(mode.eq.1) then
-		if(hh.gt.h(k)) h(k)=hh
-	   else
-		if(hh.lt.h(k)) h(k)=hh
-	   end if
-	   if(hhh.ne.hflag.and.hhh.ne.hh) buniq=.false.
-	 end do
-	end do
-
-	do i=1,nkn
-	   if(h(i).eq.hflag) then
-		write(6,*) 'igtdpa : Nodes without depth'
-		igtdpa=-1
-		return
-	   end if
-	end do
-
-	if(buniq) then
-		igtdpa=1
-	else
-		igtdpa=0
-	end if
-
-	end
-
-c********************************************************************
-
-	subroutine huniqu(hev,hkv)
-
-c make depth unique for every node (changes hm3v)
-c nodal values are the highest (deepest) value
-c
-c hev		element averaged depth values
-c hkv            array with unique depth values
-
-	use basin
-
-	implicit none
-
-	real hev(nel)
-	real hkv(nkn)
-
-	integer ie,ii,k
-	logical bstop
-	real h,flag,hm
-
-	integer ipext
-
-c flag nodal values
-
-	flag = -999.
-
-	do k=1,nkn
-	  hkv(k) = flag
-	end do
-
-c create element averaged depth values and assign to nodal values
-
-	do ie=1,nel
-	  hm = 0.
-	  do ii=1,3
-	    hm = hm + hm3v(ii,ie)
-	  end do
-
-	  hev(ie) = hm / 3.
-
-	  do ii=1,3
-	    hm3v(ii,ie) = hev(ie)
-	  end do
-
-	  h = hev(ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    if( k .le. 0 ) write(6,*) 'huniqu: ',ie,ii,k,hev(ie)
-	    if( h .gt. hkv(k) ) hkv(k) = h
-	  end do
-	end do
-
-c check if all depth values are available
-
-	bstop = .false.
-
-	do k=1,nkn
-	  if( hkv(k) .eq. flag ) then
-		write(6,*) 'No depth for node ',ipext(k)
-		bstop = .true.
-	  end if
-	end do
-
-	if( bstop ) stop 'error stop huniqu'
-
 	end
 
 c********************************************************************
@@ -241,11 +93,7 @@ c local
 	real hm
 
         do ie=1,nel
-	  hm = 0.
-          do ii=1,3
-	    hm = hm + hm3v(ii,ie)
-          end do
-	  hev(ie) = hm / 3.
+	  hev(ie) = basin_vertex_average(ie,hm3v)
         end do
 
         end
@@ -257,35 +105,31 @@ c********************************************************************
 c makes hkv (nodewise depth)
 
 	use basin
+	use evgeom
 
         implicit none
 
 c arguments
         real hkv(nkn)
 c local
-        integer ie,ii,k,kn
-	real weight
+        integer ie,ii,k,n
+	integer kn(3)
+	real area
         real haux(nkn)   !aux array -> bug - was integer
 
-	real weight_elem
-
-        do k=1,nkn
-          hkv(k) = 0.
-          haux(k) = 0.
-        end do
+        hkv = 0.
+        haux = 0.
 
         do ie=1,nel
-	  weight = weight_elem(ie)
-          do ii=1,3
-            kn=nen3v(ii,ie)
-            hkv(kn)=hkv(kn)+hm3v(ii,ie)*weight	!ccf
-            haux(kn)=haux(kn)+weight
+	  call get_vertex_area_of_element(ie,n,kn,area)
+          do ii=1,n
+	    k = kn(ii)
+            hkv(k)=hkv(k)+hm3v(ii,ie)*area	!ccf
+            haux(k)=haux(k)+area
           end do
         end do
 
-        do k=1,nkn
-          hkv(k) = hkv(k) / haux(k)
-        end do
+        where( haux > 0 )  hkv = hkv / haux
 
         end
 
@@ -304,7 +148,8 @@ c itype:  -1: min  0: aver  +1: max
         real hkv(nkn)
         integer itype
 
-        integer k,ie,ii
+        integer k,ie,ii,n
+	integer kn(3)
         real hinit,h
 
 c-------------------------------------------------------
@@ -331,9 +176,10 @@ c set hkv
 c-------------------------------------------------------
 
         do ie=1,nel
-          do ii=1,3
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
+            k = kn(ii)
             h = hm3v(ii,ie)
-            k = nen3v(ii,ie)
             if( itype .lt. 0 ) then
               hkv(k) = min(hkv(k),h)
             else
@@ -591,7 +437,8 @@ c uses information about sigma layers and hsigma (hybrid)
 	implicit none
 
 	logical berror
-	integer k,ie,ii
+	integer k,ie,ii,n
+	integer kn(3)
 	integer inc,ihmin,ihmax
 	integer nlv,nsigma
 	real flag
@@ -622,18 +469,15 @@ c-------------------------------------------------------
 
 	do ie=1,nel
 
-	  hm = 0.
-	  do ii=1,3
-	    h = hm3v(ii,ie)
-	    hm = hm + h
-	  end do
-	  hm = hm / 3.
+	  hm = basin_vertex_average(ie,hm3v)
 
 	  if( hm > hsigma ) cycle
 
-	  do ii=1,3
+	  call basin_get_vertex_nodes(ie,n,kn)
+
+	  do ii=1,n
+	    k = kn(ii)
 	    h = hm3v(ii,ie)
-	    k = nen3v(ii,ie)
 	    if( hkv(k) .eq. flag ) then
 	      hkv(k) = h
 	    else
