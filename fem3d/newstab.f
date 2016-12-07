@@ -641,7 +641,8 @@ c outputs stability index for hydro timestep (internal)
 	real, save, allocatable :: smax(:)
 
 	logical bnos
-	integer ie,ii,k,l,lmax
+	integer ie,ii,k,l,lmax,n
+	integer kn(3)
 	integer ia,id
 	real sindex,smin
 	real sx,sn
@@ -680,11 +681,11 @@ c	itmsti = -1
 
 	do ie=1,nel
 	  lmax = ilhv(ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
 	  do l=1,lmax
 	    sindex = sauxe1(l,ie)+sauxe2(l,ie)
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      if( k == 0 ) cycle
+	    do ii=1,n
+	      k = kn(ii)
 	      if( sindex .gt. smax(k) ) smax(k) = sindex
 	    end do
 	  end do

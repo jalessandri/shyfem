@@ -27,7 +27,7 @@ c administers turbulence closure
 
 	implicit none
 
-	real getpar,areaele
+	real getpar
 
 	integer iturb
 	save iturb
@@ -250,7 +250,7 @@ c---------------------------------------------------------------
 
 	double precision tmp(nlvdim)
 	real dtreal
-	real getpar,areaele
+	real getpar
 	real*8 rhop,tau0
 
 
@@ -1085,8 +1085,6 @@ c taub (stress at bottom) is accumulated and weighted by area
 	integer k,ie,ii,n,nlev,imud
 	integer kn(3)
 	real aj,taubot,getpar
-
-	real areaele
 
 	imud = getpar('imud')
 

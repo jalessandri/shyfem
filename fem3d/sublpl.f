@@ -74,7 +74,7 @@ c arguments
 	real flag		!flag to distinguish boundary condition
 c local
 	integer kn(3)
-	integer ie,i,j,j1,j2,n,m,kk
+	integer ie,i,j,j1,j2,n,m,kk,nv
 	integer ngl
 	real area,rw
 	real hia(3,3),hik(3)
@@ -86,13 +86,8 @@ c fucntion
 
 	do ie=1,nel
 
-	  do i=1,3
-		kn(i)=nen3v(i,ie)
-		b(i)=ev(i+3,ie)
-		c(i)=ev(i+6,ie)
-	  end do
-
-	  area = 12. * ev(10,ie)
+	  call get_vertex_area_of_element(ie,nv,kn,b,c,area)
+	  area = nv * area
 
 c set up local matrix
 

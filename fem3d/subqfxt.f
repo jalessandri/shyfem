@@ -155,7 +155,7 @@ c local
 	real qsens,qlat,qlong,evap,qrad
         real qswa  
 	real cice,aice,fice
-	real ev,eeff
+	real eevv,eeff
 	real area
 	real evaver
         real uub,vvb        
@@ -289,7 +289,7 @@ c---------------------------------------------------------
 	  else if( iheat .eq. 5 ) then
 	    call heatgotm (ta,p,uw,ur,cc,tm,qsens,qlat,qlong,evap)
 	  else if( iheat .eq. 6 ) then
-	    call get_pe_values(k,r,ev,eeff)
+	    call get_pe_values(k,r,eevv,eeff)	!FIXME_GGU - eevv,eeff not used
 	    call heatcoare(ta,p,uw,ur,cc,tws(k),r,qss,qsens,qlat,
      +                     qlong,evap,cd)
 	    if ( bwind ) windcd(k) = cd

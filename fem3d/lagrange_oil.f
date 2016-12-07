@@ -68,7 +68,7 @@ c*******************************************************************
         end do
 
 	do ie=1,nel
-	  area = 12. * ev(10,ie)
+	  area = get_total_area_of_element(ie)
 	  roil = qoil * oil(ie)
 	  zoil = roil / ( rhooil * area )
 

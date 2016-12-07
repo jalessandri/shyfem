@@ -509,21 +509,19 @@ c******************************************************************
 c computes area in total basin
 
 	use basin, only : nkn,nel,ngr,mbw
+	use evgeom
 
 	implicit none
 
 	real areatotal
 
-
 	integer ie
 	real area
-
-	real areaele
 
 	area = 0.
 
 	do ie=1,nel
-	  area = area + areaele(ie)
+	  area = area + get_total_area_of_element(ie)
 	end do
 
 	areatotal = area
@@ -535,6 +533,8 @@ c******************************************************************
 	subroutine volstats(n,ielem)
 
 c writes statistics of volumes to file
+
+	use evgeom
 
 	implicit none
 
@@ -550,7 +550,7 @@ c writes statistics of volumes to file
 	logical nextline
         integer ieext
         integer ifemop
-	real volele,areaele
+	real volele
 
         iunit = 79
         iunit = ifemop('.vvv','form','new')
@@ -571,7 +571,7 @@ c writes statistics of volumes to file
           do i=ifirst,ilast
 	    ie = ielem(i)
 	    volume = volume + volele(ie,0)
-	    area = area + areaele(ie)
+	    area = area + get_total_area_of_element(ie)
 	  end do
 
           write(iunit,*) ns,ntotal
@@ -755,6 +755,8 @@ c******************************************************************
 
 c computes average values...
 
+	use evgeom
+
 	implicit none
 
 	integer n
@@ -764,7 +766,7 @@ c computes average values...
 	integer i,ie
 	real volume,area
 
-	real volele,areaele
+	real volele
 
 	volume = 0.
 	area = 0.
@@ -772,7 +774,7 @@ c computes average values...
 	do i=1,n
 	  ie = ielem(i)
 	  volume = volume + volele(ie,0)
-	  area = area + areaele(ie)
+	  area = area + get_total_area_of_element(ie)
 	end do
 
 	volav = volume

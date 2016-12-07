@@ -134,11 +134,11 @@
 	include 'femtime.h'
  
 	integer kn(3)
-	integer ie,i,j,j1,j2,n,m,kk,l,k
+	integer ie,i,j,j1,j2,n,m,kk,l,k,nv
 	integer ngl
 	integer ilevel
 	integer lmax
-	real aj,aj4,aj12
+	real area,areat
 	real ht
 	real h11,hh999
 	real delta
@@ -158,23 +158,19 @@
 !	  initialize element values
 !	  ------------------------------------------------------
 
-	  aj=ev(10,ie)
-          aj4=4.*aj
-          aj12=12.*aj
-	  do i=1,3
-	    kk=nen3v(i,ie)
-	    kn(i)=kk
-	    b(i)=ev(i+3,ie)
-	    c(i)=ev(i+6,ie)
-	  end do
+	  call get_vertex_area_of_element_kbcr(ie,nv,kn,b,c,area)
+	  areat = nv * area
 
 !	  ------------------------------------------------------
 !	  set element matrix and RHS
 !	  ------------------------------------------------------
 
-	  do n=1,3
-	    do m=1,3
-	      hia(n,m) = -aj12 * ( b(n) * b(m) + c(n) * c(m) )
+	  hia = 0.
+	  hik = 0.
+
+	  do n=1,nv
+	    do m=1,nv
+	      hia(n,m) = -areat * ( b(n) * b(m) + c(n) * c(m) )
 	    end do
 	    hik(n) = 0.
 	  end do
@@ -183,14 +179,11 @@
 !	  boundary conditions
 !	  ------------------------------------------------------
 
-	  do i=1,3
+	  do i=1,nv
 	    if( pvar(kn(i)) .ne. flag ) then
-	      j1=mod(i,3)+1
-	      j2=mod(i+1,3)+1
-              hia(i,i)=1.
-              hia(i,j1)=0.
-              hia(i,j2)=0.
-              hik(i)=pvar(kn(i))
+	      hia(i,:) = 0.
+              hia(i,i) = 1.
+              hik(i) = pvar(kn(i))
 	    end if
 	  end do
 
@@ -293,11 +286,11 @@
 	include 'femtime.h'
  
 	integer kn(3)
-	integer ie,i,j,j1,j2,n,m,kk,l,k,iii
+	integer ie,i,j,j1,j2,n,m,kk,l,k,iii,nv
 	integer ngl
 	integer ilevel
 	integer lmax
-	real aj,aj4,aj12
+	real area,areat
 	real ht
 	real h11,hh999
 	real delta,r,hh
@@ -320,7 +313,7 @@
 
 	darea = 0.
 	do ie=1,nel
-	  darea = darea + 12 * ev(10,ie)
+	  darea = darea + get_total_area_of_element(ie)
 	end do
 	dist = sqrt(darea/nel)
 	
@@ -334,15 +327,8 @@
 !	  initialize element values
 !	  ------------------------------------------------------
 
-	  aj=ev(10,ie)
-          aj4=4.*aj
-          aj12=12.*aj
-	  do i=1,3
-	    kk=nen3v(i,ie)
-	    kn(i)=kk
-	    b(i)=ev(i+3,ie)
-	    c(i)=ev(i+6,ie)
-	  end do
+	  call get_vertex_area_of_element_kbcr(ie,nv,kn,b,c,area)
+	  areat = nv * area
 
 !	  ------------------------------------------------------
 !	  set element matrix and RHS
@@ -355,6 +341,7 @@
 	  do l=1,lmax
 
 	  hia3d = 0.
+	  hik = 0.
 
 	  hh = dist
 	  hd = hh
@@ -370,13 +357,13 @@
 	  if( l == lmax ) rhp = 0.
 	  rhc = rhm + rhp
 
-	  do n=1,3
-	    do m=1,3
-	      hia3d(0,n,m) = -aj12 * hd * ( b(n) * b(m) + c(n) * c(m) )
+	  do n=1,nv
+	    do m=1,nv
+	      hia3d(0,n,m) = -areat * hd * ( b(n) * b(m) + c(n) * c(m) )
 	      if ( n .eq. m ) then
-	        hia3d(0,n,m) = hia3d(0,n,m) - aj4 * rhc
-	        hia3d(-1,n,m) = aj4 * rhm
-	        hia3d(+1,n,m) = aj4 * rhp
+	        hia3d(0,n,m) = hia3d(0,n,m) - area * rhc
+	        hia3d(-1,n,m) = area * rhm
+	        hia3d(+1,n,m) = area * rhp
               end if
 	    end do
 	    hik(n) = 0.
@@ -386,17 +373,14 @@
 !	  boundary conditions
 !	  ------------------------------------------------------
 
-	  do i=1,3
+	  do i=1,nv
 	    if( pvar(l,kn(i)) .ne. flag ) then
 	      r = 1.
 	      r = hia3d(0,i,i)
-	      j1=mod(i,3)+1
-	      j2=mod(i+1,3)+1
               hia3d(-1,i,i)=0.
               hia3d(+1,i,i)=0.
+              hia3d(0,i,:)=0.
               hia3d(0,i,i)=r
-              hia3d(0,i,j1)=0.
-              hia3d(0,i,j2)=0.
               hik(i)=pvar(l,kn(i)) * r
 	    end if
 	  end do

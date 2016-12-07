@@ -46,7 +46,9 @@ c common
 	include 'femtime.h'
 	include 'mkonst.h'
 c local
-	integer ie,ii,k,irand,n
+	integer ie,ii,k,irand,n,nv
+	integer kn(3)
+	real bb(3),cc(3)
 	real dt,area,bcz,c,cmax
 	integer ier,i,ix,iy,iok
 	real x,y
@@ -98,6 +100,8 @@ c
 	data bfirst /.true./
 	data epsa / 1.d-15 /
 c
+	stop 'error stop crador: broken'
+
 	if(bfirst) then
 		bfirst=.false.
 		write(6,*) '**** setup of crador ****'
@@ -222,17 +226,18 @@ c
 	do ie=1,nel
 	  bcz=0.
 	  irand=0
-	  do ii=1,3
-	    k=nen3v(ii,ie)
+	  call get_vertex_area_of_element(ie,nv,kn,bb,cc,area)
+	  area = area / (n+1)	!aomega
+	  do ii=1,nv
+	    k=kn(ii)
 	    if(rzv(k).ne.flag) irand=1	!could jump to end of outer do loop
-	    bcz=bcz+ev(6+ii,ie)*zov(k)		!top or bottom (c) !OOO
-c	    bcz=bcz+ev(6+ii,ie)*(znv(k)+zov(k))	!top or bottom (c)
-c	    bcz=bcz+ev(3+ii,ie)*(znv(k)+zov(k))	!right or left (b)
+	    bcz=bcz+cc(ii)*zov(k)		!top or bottom (c) !OOO
+c	    bcz=bcz+cc(ii)*(znv(k)+zov(k))	!top or bottom (c)
+c	    bcz=bcz+bb(ii)*(znv(k)+zov(k))	!right or left (b)
 	  end do
 	  if(irand.eq.0) then
-	    area=ev(10,ie)
-	    do ii=1,3
-	      k=nen3v(ii,ie)
+	    do ii=1,nv
+	      k=kn(ii)
 	      v1(k)=v1(k)+area
 	      v2(k)=v2(k)+area*bcz	!bottom or left
 c	      v2(k)=v2(k)-area*bcz	!right or top
@@ -250,8 +255,9 @@ c
 	do ie=1,nel
 	  n=0
 	  c=0.
-	  do ii=1,3
-	    k=nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
+	    k=kn(ii)
 	    if(rzv(k).eq.flag) then
 	      n=n+1
 	      c=c+v1(k)
@@ -344,7 +350,7 @@ c
 	    zb(i)=0.
 	  end do
 	  do ie=1,nel
-	    area=ev(10,ie)
+	    area=get_aomega_area_of_element(ie)
 	    do ii=1,3
 		    x=xgv(nen3v(ii,ie))
 		    y=ygv(nen3v(ii,ie))
@@ -393,7 +399,7 @@ c
 	  end do
 
 	  do ie=1,nel
-	    area=ev(10,ie)
+	    area=get_aomega_area_of_element(ie)
 	    x=0.
 	    iok=0
 	    do ii=1,3
@@ -482,7 +488,7 @@ c fill in main and upper diagonal
 	  end do
 
 	  do ie=1,nel
-	    area=ev(10,ie)
+	    area=get_aomega_area_of_element(ie)
 	    x=0.
 	    iok=0
 	    do ii=1,3
@@ -511,7 +517,7 @@ c fill in main and upper diagonal
 	  end do
 
 	  do ie=1,nel
-	    area=ev(10,ie)
+	    area=get_aomega_area_of_element(ie)
 	    x=0.
 	    iok=0
 	    do ii=1,3
@@ -573,6 +579,8 @@ c save
 c	
 c find out how many nodes are on boundary
 c
+	stop 'error stop gwi: broken'
+
 	ib = 0
 	ib1 = 0
 	ib2 = 0

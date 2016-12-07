@@ -53,10 +53,12 @@ c 20.08.1998    ggu     some documentation
         implicit none
 
 	logical byaron
-        integer k,ie,ii,kk,l
+        integer k,ie,ii,kk,l,n
+	integer kn(3)
         integer ilevel
 	integer inwater
-        real aj,wbot,wtop,ff
+        real area,wbot,wtop,ff
+	real b(3),c(3)
 
 c initialize
 
@@ -79,17 +81,14 @@ c f(ii) > 0 ==> flux into node ii
         do ie=1,nel
          !if( bwater(ie) ) then           !FIXME	!not working
 	  inwater = inwater + 1
-          aj=4.*ev(10,ie)               !area of triangle / 3
+	  call get_vertex_area_of_element_kbcr(ie,n,kn,b,c,area)
           ilevel = ilhv(ie)
           do l=1,ilevel
-            do ii=1,3
-                kk=nen3v(ii,ie)
-                ff = utlnv(l,ie)*ev(ii+3,ie) + vtlnv(l,ie)*ev(ii+6,ie)
-	if( byaron .and. kk .eq. 2088 .and. l .eq. 8 ) then
-		ff = ff + 10./(6.*3.*aj)
-	end if
-                wlnv(l,kk) = wlnv(l,kk) + 3. * aj * ff
-                wauxv(l,kk)=wauxv(l,kk)+aj
+            do ii=1,n
+                kk=kn(ii)
+                ff = utlnv(l,ie)*b(ii) + vtlnv(l,ie)*c(ii)
+                wlnv(l,kk) = wlnv(l,kk) + n * area * ff
+                wauxv(l,kk)=wauxv(l,kk) + area
             end do
           end do
          !end if

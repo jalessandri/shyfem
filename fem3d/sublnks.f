@@ -161,7 +161,7 @@ c
 	use mod_geom
 	use mod_geom_dynamic
 	use evgeom
-	use basin, only : nkn,nel,ngr,mbw
+	use basin
 
         implicit none
 
@@ -169,7 +169,7 @@ c arguments
 	real winkk
         integer k
 c local
-        integer i,n,ie
+        integer i,n,ie,ii
 	integer elems(maxlnk)
         double precision w
 c functions
@@ -181,7 +181,8 @@ c functions
         do i=1,n
           ie=elems(i)
           if( iwegv(ie).eq.0 ) then
-            w = w + ev(10+ithis(k,ie),ie)
+	    ii = iikthis(k,ie)
+            w = w + get_angle_of_vertex(ii,ie)
           end if
         end do
 
@@ -293,7 +294,7 @@ c
 	    call basin_get_vertex_nodes(ie,n,kn)
             do ii=1,n
               k=kn(ii)
-              if( iskbnd(k) ) w=w+ev(10+ii,ie)
+              if( iskbnd(k) ) w=w+get_angle_of_vertex(ii,ie)
             end do
           end if
 	end do
@@ -330,7 +331,7 @@ c functions
         artot=0.
 
         do ie=1,nel
-          area=ev(10,ie)
+          area=get_total_area_of_element(ie)
           if(isein(ie)) then
             arin=arin+area
           else
@@ -341,7 +342,6 @@ c functions
 
         arin=100.*arin/artot
         arout=100.*arout/artot
-        artot=12.*artot
 
 c        write(88,'(i8,f12.3,2f12.2,e12.4)') it,arin,arout,artot
 

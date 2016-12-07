@@ -2505,12 +2505,14 @@ c DOCS  END
         double precision bflx(nsdim,nkn)	!flux of bedload sediment [m3/m2]
 
 ! --- local variables
-        integer k,ie,ii,is
+        integer k,ie,ii,is,n
+	integer kn(3)
 	double precision v2v(nkn)
         double precision bflux
         double precision sexe(nsdim)           	!element transport in x direction
         double precision seye(nsdim)           	!element transport in x direction
         double precision b,c   		        !x and y derivated form function [1/m]
+	double precision bb(3),cc(3)
         double precision area			!area of element/3
         double precision ss(nsdim)
 	double precision sm(nsdim)
@@ -2528,7 +2530,7 @@ c DOCS  END
 
         do ie = 1,nel
 
-          area = 4. * ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
 
           do is = 1,nscls
             sm(is) = 0.d0
@@ -2539,8 +2541,8 @@ c DOCS  END
 !         Converts node transport value to element value
 !         -------------------------------------------------------------------
 
-          do ii=1,3
-            k = nen3v(ii,ie)
+          do ii=1,n
+            k = kn(ii)
 	    v2v(k) = v2v(k) + area
             do is = 1,nscls
               sm(is) = sm(is) + sedx(is,k)
@@ -2557,13 +2559,13 @@ c DOCS  END
 !         Loop over elements vertex
 !         -------------------------------------------------------------------
 
-          do ii = 1,3
-            k = nen3v(ii,ie)
-            b = ev(3+ii,ie)                                   !1/m
-            c = ev(6+ii,ie)                                   !1/m
+          do ii = 1,n
+            k = kn(ii)
+            b = bb(ii)
+            c = cc(ii)
 
             do is = 1,nscls
-              bflux = dt*area * (b*sexe(is) + c*seye(is))
+              bflux = dt*area * (b*sexe(is) + c*seye(is))	!FIXME_GGU
               bflx(is,k) = bflx(is,k) + bflux
             end do
           end do
@@ -2689,7 +2691,7 @@ c DOCS  END
         end do
 
         do ie=1,nel
-          ao = ev(10,ie)
+          ao = get_total_area_of_element(ie)
           do ii=1,3
             k = nen3v(ii,ie)
             v1v(k) = dmin1(v1v(k),bbe(ie))
@@ -3951,8 +3953,9 @@ c DOCS  END
 	real ukbot(nkn),vkbot(nkn)
 	real u,v
 	real ddl(nkn)
-	integer ie,lmax,k,ii
-	real aj,vol,depth
+	integer ie,lmax,k,ii,n
+	integer kn(3)
+	real area,vol,depth
 	integer nsigma
         real hsigma
 	logical bsigma
@@ -3981,21 +3984,21 @@ c DOCS  END
 
 	do ie = 1,nel
 	   lmax = ilhv(ie)
-	   aj = real(ev(10,ie))
+	   call get_vertex_area_of_element(ie,n,area)
 	   depth = hdenv(lmax,ie)
-	   vol = aj*depth
-	    do ii = 1,3
-	      k = nen3v(ii,ie)
-	      vv1(k) = vv1(k) + aj
+	   vol = area*depth
+	    do ii = 1,n
+	      k = kn(ii)
+	      vv1(k) = vv1(k) + area
 	      ddl(k) = ddl(k) + vol
 	    end do
            !if( iwegv(ie) .eq. 0 ) then
 	   if( iwetv(ie) .gt. 5 .and. vol.gt.0. ) then
-	    do ii = 1,3
-	      k = nen3v(ii,ie)
+	    do ii = 1,n
+	      k = kn(ii)
 	      vv(k)  = vv(k) + vol
-	      ukbot(k) = ukbot(k) + aj*ulnv(lmax,ie)
-	      vkbot(k) = vkbot(k) + aj*vlnv(lmax,ie)
+	      ukbot(k) = ukbot(k) + area*ulnv(lmax,ie)
+	      vkbot(k) = vkbot(k) + area*vlnv(lmax,ie)
 	    end do
 	   end if
 	end do

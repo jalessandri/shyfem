@@ -15,8 +15,6 @@ c function zetaele(ie,mode)
 c       computes (average) zeta of element ie
 c function volele(ie,mode)
 c       computes volume of element ie
-c function areaele(ie)
-c       computes area of element ie
 c subroutine setdepele(ie,h)
 c       sets depth for element ie
 c subroutine depvele(ie,mode,n,h)
@@ -230,6 +228,8 @@ c****************************************************************
 
 c computes volume of element ie
 
+	use evgeom
+
 	implicit none
 
 	integer ie	!number of element
@@ -237,29 +237,12 @@ c computes volume of element ie
 	real volele	!volume (return)
 
 	real area, depth
-	real areaele, depele
+	real depele
 
-	area = areaele(ie)
+	area = get_total_area_of_element(ie)
 	depth = depele(ie,mode)
 
 	volele = area * depth
-
-	end
-
-c****************************************************************
-
-	function areaele(ie)
-
-c computes area of element ie
-
-	use evgeom
-
-        implicit none
-
-        integer ie      !number of element
-        real areaele    !volume (return)
-
-	areaele = 12. * ev(10,ie)
 
 	end
 
@@ -492,8 +475,6 @@ c computes nodal values from element values (scalar)
 	logical btype
 	real v1v(nkn)
 	
-	real areaele
-
 	btype = .false.
 
 	call elenmax('ele2node',10)
@@ -836,7 +817,6 @@ c sets up depth array for nodes
 	real hacu,hlevel,hsigma,hsig
 
 	real areael,areafv
-	real areaele
 
         bdebug = .false.
 

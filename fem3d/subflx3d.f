@@ -59,6 +59,7 @@ c for a boundary node, transp(n) = 0
 	use mod_hydro_baro
 	use mod_hydro
 	use evgeom
+	use basin
 
 	implicit none
 
@@ -71,8 +72,10 @@ c for a boundary node, transp(n) = 0
 	integer elems(ne)	!elements around k
 
 	logical bdebug
-	integer i,ie,ii,ndim
-	real aj,area,dz,dt
+	integer i,ie,ii,ndim,nv
+	integer kn(3)
+	real bb(3),cc(3)
+	real area,dz,dt
 	real dvdt,div
 	real uv,uvn,uvo
 	real b,c
@@ -108,15 +111,14 @@ c---------------------------------------------------------
 
 	do i=1,ne
 	  ie = elems(i)
-	  ii = ithis(k,ie)
-	  b = ev(3+ii,ie)
-	  c = ev(6+ii,ie)
-	  aj = ev(10,ie)
-	  area = 4. * aj
+	  call get_vertex_area_of_element(ie,nv,kn,bb,cc,area)
+	  ii = iikthis(k,ie)
+	  b = bb(ii)
+	  c = cc(ii)
 
 	  uvn = unv(ie) * b + vnv(ie) * c
 	  uvo = uov(ie) * b + vov(ie) * c
-	  uv = 12. * aj * ( az * uvn + azt * uvo )
+	  uv = n * area * ( az * uvn + azt * uvo )
 
 	  dz = zenv(ii,ie) - zeov(ii,ie)
 	  dvdt = dz * area / dt
@@ -222,6 +224,7 @@ c -> has been done - other sources of mfluxv (rain, etc.) are also eliminated
 	use mod_hydro
 	use evgeom
 	use levels
+	use basin
 
 	implicit none
 
@@ -235,9 +238,11 @@ c -> has been done - other sources of mfluxv (rain, etc.) are also eliminated
 	integer elems(ne)	!elements around k
 
 	logical bdebug
-	integer i,ie,ii,ndim
+	integer i,ie,ii,ndim,nv
+	integer kn(3)
 	integer l,lmax
-	real aj,area,dz,dt
+	real bb(3),cc(3)
+	real area,dz,dt
 	real uv,uvn,uvo
 	real b,c
 	real azt
@@ -284,16 +289,15 @@ c---------------------------------------------------------
 
 	do i=1,ne
 	  ie = elems(i)
-	  ii = ithis(k,ie)
-	  b = ev(3+ii,ie)
-	  c = ev(6+ii,ie)
-	  aj = ev(10,ie)
-	  area = 4. * aj
+	  call get_vertex_area_of_element(ie,nv,kn,bb,cc,area)
+	  ii = iikthis(k,ie)
+	  b = bb(ii)
+	  c = cc(ii)
 	  lmax = ilhv(ie)
 	  do l=1,lmax
 	    uvn = utlnv(l,ie) * b + vtlnv(l,ie) * c
 	    uvo = utlov(l,ie) * b + vtlov(l,ie) * c
-	    uv = 12. * aj * ( az * uvn + azt * uvo )
+	    uv = n * area * ( az * uvn + azt * uvo )
 
             dvdt = dvol(l)/dt
 	    q = mfluxv(l,k)

@@ -262,7 +262,7 @@ c-----------------------------------------------------------------
 
 	atot = 0.
 	do ie=1,nel
-	  area = ev(10,ie)
+	  area = get_total_area_of_element(ie)
 	  atot = atot + area
 	end do
 

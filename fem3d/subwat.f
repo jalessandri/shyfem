@@ -76,7 +76,7 @@ c local
 	  ie=elems(i)
 	  if(ie.le.0) stop 'error stop connod: internal error'
 	  ii = ithis(k,ie)
-	  area = 4. * ev(10,ie)
+	  area = get_finvol_area_of_element(ie)
 	  depth=hm3v(ii,ie)+zenv(ii,ie)-dz		!$$lumpc
 	  vol = area * depth
 	  dvol = area * dz
@@ -100,7 +100,7 @@ c	write(6,*) 'ggu1: ',massold,massnew,massnew-massold
 	do i=1,nl
 	  ie=elems(i)
 	  ii = ithis(k,ie)
-	  area = 4. * ev(10,ie)
+	  area = get_finvol_area_of_element(ie)
 	  depth=hm3v(ii,ie)+zenv(ii,ie)		!$$lumpc
 	  vol = area * depth
 	  massnew = massnew + coe(ii,ie)*vol

@@ -208,15 +208,10 @@ c arguments
         real flxnod
         integer k
 c local
-        real flux,area
         integer i,nl,ie,ii
 	integer elems(maxlnk)
         logical blink
-c function
-        integer ithis
-c statement function
-        real fflux
-        fflux(ii,ie) = ( unv(ie)*ev(3+ii,ie) + vnv(ie)*ev(6+ii,ie) )
+        real flux,area,b,c
 
         blink = .true.
         flux=0.
@@ -227,9 +222,10 @@ c statement function
 
           do i=1,nl
             ie=elems(i)
-            ii=ithis(k,ie)
+            ii=iikthis(k,ie)
 	    area = get_total_area_of_element(ie)
-            flux = flux + area * fflux(ii,ie)
+	    call get_derivative_of_vertex(ii,ie,b,c)
+            flux = flux + area * (unv(ie)*b+vnv(ie)*c)
           end do
 
         else
@@ -238,7 +234,7 @@ c statement function
             do ii=1,3
 	      if( link_is_k(ii,ie,k) ) then
 	        area = get_total_area_of_element(ie)
-                flux = flux + area * fflux(ii,ie)
+                flux = flux + area * (unv(ie)*b+vnv(ie)*c)
               end if
             end do
           end do

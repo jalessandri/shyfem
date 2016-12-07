@@ -85,8 +85,8 @@ c sum angles
           if(iwegv(ie).eq.0) then !element is in system
 	    call basin_get_vertex_nodes(ie,n,kn)
             do ii=1,n
-              k=kn(3)
-              winkv(k)=winkv(k)+ev(10+ii,ie)
+              k=kn(ii)
+              winkv(k)=winkv(k)+get_angle_of_vertex(ii,ie)
             end do
           end if
 	end do

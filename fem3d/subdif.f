@@ -46,6 +46,7 @@ c checks stability of diffusion (with variable diffusion coef.)
         integer k,ie,ii,n
 	integer kn(3)
         real alpha,beta,area,areael,b,c,bmin,bmax
+	real bb(3),cc(3)
         real rkmin,rkmax
 
         do k=1,nkn
@@ -54,13 +55,13 @@ c checks stability of diffusion (with variable diffusion coef.)
         end do
 
         do ie=1,nel
-	  call get_vertex_area_of_element_kr(ie,n,kn,area)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
 	  areael = n * area
           alpha =  areael * dt * rkv(ie)
           do ii=1,n
             k = kn(ii)
-            b = ev(3+ii,ie)
-            c = ev(6+ii,ie)
+            b = bb(ii)
+            c = cc(ii)
             v1v(k) = v1v(k) + alpha * ( b*b + c*c )
             v2v(k) = v2v(k) + area
           end do
@@ -96,7 +97,8 @@ c weights in main diagonal are positive => weights out of diag are negative
         implicit none
 
 	logical bdebug,berror
-        integer k,ie,ii,iii,i
+        integer k,ie,ii,iii,i,n
+	integer kn(3)
 	integer ia,ib
         integer nchange,idtype
         double precision w,fact,eps
@@ -106,6 +108,7 @@ c weights in main diagonal are positive => weights out of diag are negative
 	double precision bc(3,3)
 	double precision wacu_aux(3)
 	double precision wacu,wacu_max
+	double precision area
 
 	real getpar
 
@@ -130,17 +133,18 @@ c-----------------------------------------------------------------
 
         do ie=1,nel
 
-          do ii=1,3
-            b(ii) = ev(3+ii,ie)
-            c(ii) = ev(6+ii,ie)
-          end do
+	  call get_vertex_area_of_element_kbcd(ie,n,kn,b,c,area)
+
+	  bc = 0.
+	  bc_orig = 0.
+	  bc_adj = 0.
 
 c	  -----------------------------------------------------------------
 c 	  type 0
 c	  -----------------------------------------------------------------
 
-          do ii=1,3
-            do iii=1,3
+          do ii=1,n
+            do iii=1,n
               bc(iii,ii) = b(iii)*b(ii) + c(iii)*c(ii)
 	      bc_orig(iii,ii) = bc(iii,ii)
             end do
@@ -150,14 +154,34 @@ c	  -----------------------------------------------------------------
 c 	  adjust matrix
 c	  -----------------------------------------------------------------
 
-	  if( idtype .eq. 1 ) then
+	  if( n == 2 ) then
+
+c	    -----------------------------------------------------------------
+c 	    1d element
+c	    -----------------------------------------------------------------
+
+	    berror = .false.
+            do ii=1,n
+              do iii=1,n
+                w = bc(iii,ii)
+                if( w .gt. 0. .and. iii .ne. ii ) berror = .true.
+                if( w .lt. 0. .and. iii .eq. ii ) berror = .true.
+	      end do
+	    end do
+	    if( berror ) then
+	      write(6,*) 'error in weights in 1d element ',ie,n
+	      write(6,*) bc(iii,ii)
+	      stop 'error stop diffweight: weights in 1d element'
+	    end if
+	    
+	  else if( idtype .eq. 1 ) then
 
 c	    -----------------------------------------------------------------
 c 	    type 1
 c	    -----------------------------------------------------------------
 
-            do ii=1,3
-              do iii=1,3
+            do ii=1,n
+              do iii=1,n
                 w = bc(iii,ii)
                 if( w .gt. 0. .and. iii .ne. ii ) then
                       i = 6 - ii - iii
@@ -166,7 +190,7 @@ c	    -----------------------------------------------------------------
                       nchange = nchange + 1
                 end if
               end do
-              do iii=1,3
+              do iii=1,n
 		bc_adj(iii,ii) = bc(iii,ii)
 	      end do
 	    end do
@@ -177,7 +201,7 @@ c	    -----------------------------------------------------------------
 c 	    type 2
 c	    -----------------------------------------------------------------
 
-            do i=1,3
+            do i=1,n
 	      ia = 1+mod(i,3)
 	      ib = 1+mod(i+1,3)
 	      w = 1. / ev(13+i,ie)**2
@@ -187,16 +211,16 @@ c	    -----------------------------------------------------------------
 	      bc(i,i) = 0.
 	    end do
 
-	    do ii=1,3
+	    do ii=1,n
 	      w = 0.
-              do iii=1,3
+              do iii=1,n
 	        w = w + bc(ii,iii)
 	      end do
 	      bc(ii,ii) = -w
 	    end do
 
-	    do ii=1,3
-              do iii=1,3
+	    do ii=1,n
+              do iii=1,n
 		bc_adj(ii,iii) = bc(ii,iii)
 	      end do
 	    end do
@@ -208,9 +232,9 @@ c 	  error handling and copy to wdifhv
 c	  -----------------------------------------------------------------
 
 	  berror = .false.
-	  do ii=1,3
+	  do ii=1,n
 	    wacu = 0.
-            do iii=1,3
+            do iii=1,n
 	      w = bc(ii,iii)
 	      wacu = wacu + w
 	      if( ii .eq. iii ) then
@@ -230,6 +254,7 @@ c	  -----------------------------------------------------------------
 	  !if( berror ) then
 	    write(6,*) 'diffweight: idtype = ',idtype
 	    write(6,*) '   ie (intern) = ',ie
+	    write(6,*) '   n = ',n
 	    write(6,*) '   eps = ',eps
 	    write(6,*) '   wacu = ',wacu_aux
 	    do ii=1,3
@@ -240,7 +265,7 @@ c	  -----------------------------------------------------------------
 
 	  !bdebug = ie .eq. 100 .or. ie .eq. 101
 	  if( bdebug ) then
-	    write(6,*) 'diffusion check: ',ie
+	    write(6,*) 'diffusion check: ',ie,n
 	    write(6,*) 'diffusion orig'
 	    do ii=1,3
 	      write(6,*) (bc_orig(iii,ii),iii=1,3)
@@ -289,6 +314,7 @@ c limits diffusion parameter
         integer nchange
         real gamma,rk
         real alpha,beta,area,b,c,bmin,bmax
+	real bb(3),cc(3)
         real rkmin,rkmax
 
         nchange = 0
@@ -296,14 +322,14 @@ c limits diffusion parameter
         rkmax = rkv(1)
 
         do ie=1,nel
-	  call get_vertex_area_of_element_kr(ie,n,kn,area)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
           beta = 0.
           rk = rkv(ie)
           alpha = n * dt * rk
           do ii=1,n
             k = kn(ii)
-            b = ev(3+ii,ie)
-            c = ev(6+ii,ie)
+            b = bb(ii)
+            c = cc(ii)
             beta = max( beta , alpha * ( b*b + c*c ) )
           end do
           gamma = beta / istot
@@ -373,7 +399,7 @@ c adjusts diffusion coefficient
 
           alpha = 0.01
           do ie=1,nel
-            area = 12. * ev(10,ie)
+            area = get_total_area_of_element(ie)
             rkv(ie) = alpha * area**(2./3.)
           end do
 
@@ -488,7 +514,7 @@ c       ------------------------------------------------
 
         ahmax = 0.
         do ie=1,nel
-          area = 12. * ev(10,ie)
+          area = get_total_area_of_element(ie)
           ah = 1.
           if( alpha .gt. 0. ) ah = alpha * area**(2./3.)
           ahmax = max(ahmax,ah)

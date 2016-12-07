@@ -142,6 +142,7 @@ c computes total volume in basin
 
 	use mod_geom_dynamic
 	use basin, only : nkn,nel,ngr,mbw
+	use evgeom
 
 	implicit none
 
@@ -152,7 +153,7 @@ c computes total volume in basin
 	integer iwet,ie
 	real area,voldry,volwet,vol,a,v
 
-	real areaele,volele
+	real volele
 
 	iwet = 0
 	area = 0.
@@ -161,7 +162,7 @@ c computes total volume in basin
 
 	do ie=1,nel
 
-	  a = areaele(ie)
+	  a = get_total_area_of_element(ie)
 	  v = volele(ie,+1)
 
 	  if( iwegv(ie) .eq. 0 ) then
@@ -3746,12 +3747,11 @@ c-----------------------------------------
 
 	  area = 0.
 	  do ie=1,nel
-	    area = area + ev(10,ie)
+	    area = area + get_total_area_of_element(ie)
 	  end do
-	  area = area * 12.
 	  if( iu122 == 0 ) iu122 = ifemop('.122','form','new')
 	  write(iu122,*) icall,nel,area
-	  write(iu122,*) (12.*ev(10,ie),ie=1,nel)
+	  write(iu122,*) (get_total_area_of_element(ie),ie=1,nel)
 	  close(iu122)
 	  sedim_save = getpar('sedim')	! sedimentation in [mm/y]
 	  if( sedim_save .lt. 0. ) then

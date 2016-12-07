@@ -118,7 +118,8 @@ c local
 	logical bspec
 	logical bdepcl,bflxcl,bspecl,bchez
 
-	integer i,ie,j,ii
+	integer i,ie,j,ii,nv
+	integer kn(3)
         integer nsc,ipful,ivful,jivful,ivdim
         integer nkboc,jkboc,niboc,jiboc,jhboc
         integer nitb,jitb,kout,kin,kref,kdir,isoft
@@ -126,9 +127,9 @@ c local
         integer jflux,ibnd,ibndz
         real zdate,vdate,scal,href,zdiff
 
-	integer iclose,isw,kn,kboc
+	integer iclose,isw,kboc
 	integer ibtyp,icltot,ioptot,icl,iop
-	integer k1,k2,k,l
+	integer k1,k2,k,l,kk
 	integer icycle
 	integer nbc
 	real scalo,zin,zout,zref,u,v,uvref2,dx,dy
@@ -276,11 +277,11 @@ c
 		  call basin_get_vertex_nodes(ie,nvert,kvert)
 
 		  do i=1,nvert
-		    kn = kvert(i)
-		    if(kn.eq.kref) rpccv(ipnt(lhref,j)) = hdep(i)
+		    kk = kvert(i)
+		    if(kk.eq.kref) rpccv(ipnt(lhref,j)) = hdep(i)
 		    do ii=1,nkboc
 			kboc=ivccv(jkboc+ii)
-			if(kn.eq.kboc) then
+			if(kk.eq.kboc) then
 			  rvccv(jhboc+ii) = hdep(i)
 			  isw=1
 			end if
@@ -640,12 +641,12 @@ ccc              rqv(k2)=rqv(k2)+hm*flux2*geyer
 		else if(bdepcl) then
 		  do i=1,niboc
 		    ie=ivccv(jiboc+i)
-		    do ii=1,3
-		      kn=nen3v(ii,ie)
-		      if( kn == 0 ) cycle
+		    call basin_get_vertex_nodes(ie,nv,kn)
+		    do ii=1,nv
+		      kk=kn(ii)
 		      do k=1,nkboc
 			kboc=ivccv(jkboc+k)
-			if(kn.eq.kboc) then
+			if(kk.eq.kboc) then
 				hboc=rvccv(jhboc+k)
 				h=hdry+(hdry-href)
      +					*float(istp)/float(isoft+1)
@@ -1290,6 +1291,7 @@ c z             fixed water level, to be used with mode = 0
 c volag         volume of water in basin (return value)
 
 	use basin, only : nkn,nel,ngr,mbw
+	use evgeom
 
         implicit none
 
@@ -1301,14 +1303,14 @@ c volag         volume of water in basin (return value)
         integer ie
         real w,vol,area
 
-        real volele,areaele
+        real volele
 
         w=0
 
 	if( mode .eq. 0 ) then
 	  do ie=1,nel
 	    vol = volele(ie,0)
-	    area = areaele(ie)
+	    area = get_total_area_of_element(ie)
 	    vol = vol + area * z
 	    vol = max(vol,0.)
 	    w = w + vol

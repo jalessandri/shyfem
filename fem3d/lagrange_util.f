@@ -191,11 +191,11 @@ c*******************************************************************
 	tot_area = 0.
 
 	do ie=1,nel
-	  a = ev(10,ie)
+	  a = get_total_area_of_element(ie)
 	  tot_area = tot_area + a
 	end do
 
-	area = 12. * tot_area
+	area = tot_area
 
 	end
 

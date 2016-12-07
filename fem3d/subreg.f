@@ -348,7 +348,8 @@ c parameter
 	parameter ( eps = 1.d-14 )
 c local
 	real pxareg,pyareg,pxdreg,pydreg,pzlreg
-	integer i,j,ii,iii,ie,k,kn,iin
+	integer i,j,ii,iii,ie,k,kk,iin,n
+	integer kn(3)
 	integer imin,imax,jmin,jmax
 	integer iflag
 	double precision x(3),y(3),z(3),a(3),b(3),c(3)
@@ -363,12 +364,14 @@ c function
 
 	do ie=1,nel
 	  if( bwater(ie) ) then	!wet
+	    call basin_get_vertex_nodes(ie,n,kn)
+	    if( n == 2 ) cycle
 	    iflag = 0
 	    do i=1,3
-		kn=nen3v(i,ie)
-		x(i)=xgv(kn)
-		y(i)=ygv(kn)
-		z(i)=av(kn)
+		kk=kn(i)
+		x(i)=xgv(kk)
+		y(i)=ygv(kk)
+		z(i)=av(kk)
 	        if( z(i) > pzlreg ) iflag = iflag + 1
 	    end do
 	    if( iflag .ne. 3 ) cycle
@@ -491,7 +494,8 @@ c parameter
 	parameter ( eps = 1.d-14 )
 c local
 	real pxareg,pyareg,pxdreg,pydreg,pzlreg
-	integer i,j,ii,iii,ie,k,kn,iin
+	integer i,j,ii,iii,ie,k,kk,iin,n
+	integer kn(3)
 	integer imin,imax,jmin,jmax
 	logical bok
 	double precision x(3),y(3),z(3),a(3),b(3),c(3)
@@ -507,10 +511,12 @@ c function
 	do ie=1,nel
 	  bok = bwater(ie)
 	  if( bok ) then			!wet
-	    do i=1,3
-		kn=nen3v(i,ie)
-		x(i)=xgv(kn)
-		y(i)=ygv(kn)
+	    call basin_get_vertex_nodes(ie,n,kn)
+	    if( n == 2 ) cycle
+	    do i=1,n
+		kk=nen3v(i,ie)
+		x(i)=xgv(kk)
+		y(i)=ygv(kk)
 	    end do
 
 	    !f=0.
@@ -614,31 +620,30 @@ c interpolation 3d of fem values to regular grid using fm matrix
         real am(nlv,nx,ny)		!interpolated values (return)
 
 	logical bflag
-        integer i,j,l,lmax,ie,ii,k
+        integer i,j,l,lmax,ie,ii,k,n
+	integer kn(3)
         real a
         real flag
 
 	call getgeoflag(flag)
+	am = flag
 
         do j=1,ny
           do i=1,nx
             ie = nint(fm(4,i,j))
-            lmax = 0
-            if( ie .gt. 0 ) lmax = ilhv(ie)
-	    lmax = min(lmax,nlv)
+	    if( ie == 0 ) cycle
+	    call basin_get_vertex_nodes(ie,n,kn)
+	    lmax = min(ilhv(ie),nlv)
             do l=1,lmax
               a = 0.
 	      bflag = .false.
-              do ii=1,3
-                k = nen3v(ii,ie)
+              do ii=1,n
+                k = kn(ii)
                 a = a + femval(l,k) * fm(ii,i,j)
 		if( femval(l,k) == flag ) bflag = .true.
               end do
 	      if( bflag ) a = flag
               am(l,i,j) = a
-            end do
-            do l=lmax+1,nlv
-              am(l,i,j) = flag
             end do
           end do
         end do
@@ -1130,8 +1135,7 @@ c****************************************************************
 	integer np
 	real xp(np),yp(np)
 
-	integer ie,ii,k
-	double precision x,y
+	integer ie
 
 	if( np /= nel ) then
 	  write(6,*) 'np,nel: ',np,nel
@@ -1139,15 +1143,7 @@ c****************************************************************
 	end if
 
 	do ie=1,nel
-	  x = 0.
-	  y = 0.
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    x = x + xgv(k)
-	    y = y + ygv(k)
-	  end do
-	  xp(ie) = x / 3.
-	  yp(ie) = y / 3.
+	  call baric(ie,xp(ie),yp(ie))
 	end do
 
 	end
@@ -1533,24 +1529,27 @@ c arguments
 	real href,hzoff
 c local
 	integer itot,itot1
-	integer ie,ii
+	integer ie,ii,n
+	integer kn(3)
 
         do ie=1,nel
 
+	  call basin_get_vertex_nodes(ie,n,kn)
+
           itot=0
-          do ii=1,3
+          do ii=1,n
             if( hm3v(ii,ie)+zenv(ii,ie)-href .gt. hzoff ) then
 		itot=itot+1    !wet
 	    end if
           end do
 
           itot1=0
-          do ii=1,3
-            if(zv(nen3v(ii,ie)).eq.zenv(ii,ie)) itot1=itot1+1
+          do ii=1,n
+            if(zv(kn(ii)).eq.zenv(ii,ie)) itot1=itot1+1
           end do
 
-          !if(itot.ne.3.or.itot1.ne.3)  bwater(ie) = .false.
-          if(itot.ne.3.and.itot1.ne.3)  bwater(ie) = .false.
+          !if(itot.ne.n.or.itot1.ne.n)  bwater(ie) = .false.
+          if(itot.ne.n.and.itot1.ne.n)  bwater(ie) = .false.
 
         end do
 
@@ -1604,7 +1603,8 @@ c arguments
 	logical bwater(nel)
 	logical bkwater(nkn)
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	integer nndry,nedry
 
 	nndry = 0
@@ -1614,8 +1614,9 @@ c arguments
 
 	do ie=1,nel
 	  if( bwater(ie) ) then
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	    do ii=1,n
+	      k = kn(ii)
 	      bkwater(k) = .true.
 	    end do
 	  else
@@ -1640,14 +1641,16 @@ c arguments
 	logical bwater(nel)
 	logical bkwater(nkn)
 c local
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	integer nedry
 
         bwater = .true.
 
 	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    if( .not. bkwater(k) ) then
 	      bwater(ie) = .false.
 	    end if
@@ -1813,7 +1816,7 @@ c******************************************************
 
         subroutine elemintp(x,y,z,xp,yp,zp)
 
-c interpolation in element (no ev)
+c interpolation in element (no ev) (only 2d case)
 c
 c interpolates in element given by x,y nodal values z to point xp,yp
 c result is in zp
@@ -2062,8 +2065,8 @@ c checks if point (xp,yp) is in element ie
 	integer ie
 	real xp,yp
 
-	logical b1d
-	integer ii,k,in
+	integer ii,k,in,n
+	integer kn(3)
 	real xmin,ymin,xmax,ymax
 	real x(3),y(3)
 
@@ -2071,19 +2074,14 @@ c checks if point (xp,yp) is in element ie
 
 	in_element = .false.
 
-	do ii=1,3
-	    k = nen3v(ii,ie)
-	    if( k == 0 ) cycle
+	call basin_get_vertex_nodes(ie,n,kn)
+	if( n == 2 ) return			!always false
+
+	do ii=1,n
+	    k = kn(ii)
 	    x(ii) = xgv(k)
 	    y(ii) = ygv(k)
 	end do
-
-	b1d = .false.
-	if( k == 0 ) then
-	  b1d = .true.
-	  x(3) = x(1)
-	  y(3) = y(1)
-	end if
 
 	xmin = minval(x)
 	ymin = minval(y)
@@ -2092,67 +2090,10 @@ c checks if point (xp,yp) is in element ie
 
 	if( xp .ge. xmin .and. xp .le. xmax ) then
 	  if( yp .ge. ymin .and. yp .le. ymax ) then
-	    if( b1d ) then
-		stop 'error stop in_element: 1d not yet ready'
-	    else
 		in = intri(x,y,xp,yp)
 		if( in .gt. 0 ) in_element = .true.
-	    end if
 	  end if
 	end if
-
-	end
-
-c******************************************************
-
-	subroutine get_xy_elem(ie,x,y)
-
-c returns x,y of vertices of element ie
-
-	use basin
-
-	implicit none
-
-	integer ie
-	real x(3), y(3)
-
-	integer ii,k
-
-	x = 0.
-	y = 0.
-
-	do ii=1,3
-	  k = nen3v(ii,ie)
-	  if( k == 0 ) cycle
-	  x(ii) = xgv(k)
-	  y(ii) = ygv(k)
-	end do
-
-	end
-
-c******************************************************
-
-	subroutine get_scal_elem(ie,sv,s)
-
-c returns s at vertices of element ie
-
-	use basin
-
-	implicit none
-
-	integer ie
-	real sv(nkn)
-	real s(3)
-
-	integer ii,k
-
-	s = 0.
-
-	do ii=1,3
-	  k = nen3v(ii,ie)
-	  if( k == 0 ) cycle
-	  s(ii) = sv(k)
-	end do
 
 	end
 

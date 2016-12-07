@@ -36,7 +36,8 @@ c initialization of bclfix routines
 
 	real tnudge	!relaxation time for nudging [s]
 
-        integer ie,l,i,ii,k,n,nn,nf
+        integer ie,l,i,ii,k,n,nn,nf,nv
+	integer kn(3)
 	integer ibc,nodes
 	integer nbc
 	integer iflag(nkn)
@@ -91,10 +92,11 @@ c------------------------------------------------------------------
 
 	  do ie=1,nel
 
+	    call basin_get_vertex_nodes(ie,nv,kn)
+
 	    n = 0
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      if( k == 0 ) cycle
+	    do ii=1,nv
+	      k = kn(ii)
 	      if( iflag(k) .ne. 0 ) then
 	        n = n + 1
 	        ielfix(n,ie) = k

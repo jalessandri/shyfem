@@ -383,7 +383,8 @@
 	implicit none
 
 	logical binit
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	real area
 
 	call is_init_ev(binit)
@@ -394,12 +395,12 @@
 	areak = 0.
 
 	do ie=1,nel
-	  area = 4. * ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call get_vertex_area_of_element(ie,n,area)
+	  do ii=1,n
+	    k = kn(ii)
 	    areak(k) = areak(k) + area
 	  end do
-	  areae(ie) = 3. * area
+	  areae(ie) = n * area
 	end do
 
 	end

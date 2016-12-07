@@ -361,12 +361,14 @@ c common
 	include 'femtime.h'
 	include 'mkonst.h'
 
-	integer ie,ii,kk,l,i
+	integer ie,ii,kk,l,i,n
+	integer kn(3)
 	integer ilevel
 	integer iweg
 	real flux,dzvol,avvol
 	real diff,rdiff
-	real aj,uv0,uv1
+	real area,uv0,uv1
+	real bb(3),cc(3)
 	real b,c
 	real dt,az,azt,azpar
 
@@ -388,9 +390,9 @@ c common
 	if( k .ne. kmem ) then
 	  netot = 0
           do ie=1,nel
-            do ii=1,3
-	      kk = nen3v(ii,ie)
-	      if( kk == 0 ) cycle
+	    call basin_get_vertex_nodes(ie,n,kn)
+            do ii=1,n
+	      kk = kn(ii)
 	      if( kk .eq. k ) then
 	        netot = netot + 1
 	        if( netot .gt. ngr ) then
@@ -426,12 +428,12 @@ c compute inflow into column and volume of column
 	do i=1,netot
 	  ie = kinf(1,i)
 	  ii = kinf(2,i)
-          aj=ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
           ilevel=ilhv(ie)
-          kk=nen3v(ii,ie)
+          kk=kn(ii)
 	  if( kk .ne. k ) stop 'error stop debug_node: internal error'
-          b=ev(ii+3,ie)
-          c=ev(ii+6,ie)
+          b=bb(ii)
+          c=cc(ii)
           uv0=0.
           uv1=0.
           do l=ilevel,1,-1
@@ -440,9 +442,9 @@ c compute inflow into column and volume of column
           end do
           uv1=unv(ie)*b+vnv(ie)*c
           uv0=uov(ie)*b+vov(ie)*c
-          flux  = flux  + dt*12.*aj*(uv0*azt+uv1*az)
-          dzvol = dzvol + 4.*aj*(zenv(ii,ie)-zeov(ii,ie))
-          avvol = avvol + 4.*aj*hev(ie)
+          flux  = flux  + dt*n*area*(uv0*azt+uv1*az)
+          dzvol = dzvol + area*(zenv(ii,ie)-zeov(ii,ie))
+          avvol = avvol + area*hev(ie)
 	  if( iwegv(ie) .ne. 0 ) iweg = iweg + 1
         end do
 
@@ -621,10 +623,12 @@ c checks mass conservation of single boxes (finite volumes)
 	include 'mkonst.h'
 
 	logical berror,bdebug
-	integer ie,l,ii,k,lmax,mode,ks,kss
+	integer ie,l,ii,k,lmax,mode,ks,kss,n
+	integer kn(3)
 	integer levdbg
 	real am,az,azt,dt,azpar,ampar
-	real areafv,b,c
+	real area,b,c
+	real bb(3),cc(3)
 	real ffn,ffo,ff
 	real vmax,vrmax,vdiv,vdiff,vrdiff
 	real abot,atop
@@ -671,19 +675,18 @@ c compute horizontal divergence
 c----------------------------------------------------------------
 
         do ie=1,nel
-          areafv = 4. * ev(10,ie)               !area of triangle / 3
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
           lmax = ilhv(ie)
           do l=1,lmax
-            do ii=1,3
-                k=nen3v(ii,ie)
-		if( k == 0 ) cycle
-                b = ev(ii+3,ie)
-                c = ev(ii+6,ie)
+            do ii=1,n
+                k=kn(ii)
+                b = bb(ii)
+                c = cc(ii)
                 ffn = utlnv(l,ie)*b + vtlnv(l,ie)*c
                 ffo = utlov(l,ie)*b + vtlov(l,ie)*c
                 ff = ffn * az + ffo * azt
-                vf(l,k) = vf(l,k) + 3. * areafv * ff
-                va(l,k) = va(l,k) + areafv
+                vf(l,k) = vf(l,k) + n * area * ff
+                va(l,k) = va(l,k) + area
             end do
           end do
         end do
@@ -786,7 +789,7 @@ c----------------------------------------------------------------
 	end do
 
         do ie=1,nel
-          areafv = 4. * ev(10,ie)               !area of triangle / 3
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
 
 	  ubar = 0.
 	  vbar = 0.
@@ -797,13 +800,12 @@ c----------------------------------------------------------------
 	  end do
 
           do ii=1,3
-                k=nen3v(ii,ie)
-		if( k == 0 ) cycle
-                b = ev(ii+3,ie)
-                c = ev(ii+6,ie)
+                k = kn(ii)
+                b = bb(ii)
+                c = cc(ii)
 		ff = ubar * b + vbar * c
-                vf(1,k) = vf(1,k) + 3. * areafv * ff
-                va(1,k) = va(1,k) + areafv
+                vf(1,k) = vf(1,k) + n * area * ff
+                va(1,k) = va(1,k) + area
           end do
         end do
 
@@ -933,7 +935,6 @@ c*************************************************************
 
 	if( icrc .le. 1 ) return
 
-	!call check_crc_1d(iucrc,'ev',evdim*nel,ev)	!FIXME - double
 	call check_crc_1d(iucrc,'hev',nel,hev)
 	call check_crc_1d(iucrc,'fcorv',nel,fcorv)
 	call check_crc_2d(iucrc,'visv',nlvdi,nkn,ilhkv,visv)
@@ -1116,10 +1117,11 @@ c writes debug information on element ie
 
 	integer iu
 	integer l,lmax,ii,n
+	integer kn(3)
 
 	integer ieext
 
-	n = basin_get_vertex_of_element(ie)
+	call basin_get_vertex_nodes(ie,n,kn)
 
 	iu = iucheck
 	lmax = ilhv(ie)
@@ -1127,13 +1129,13 @@ c writes debug information on element ie
 	write(iu,*) '-------------------------------- check_elem'
 	write(iu,*) 'it,idt,ie,ieext:  ',it,idt,ie,ieext(ie)
 	write(iu,*) 'lmax,iwegv,iwetv: ',lmax,iwegv(ie),iwetv(ie)
-	write(iu,*) 'area:             ',ev(10,ie)*12.
-	write(iu,*) 'nen3v  :          ',(nen3v(ii,ie),ii=1,n)
+	write(iu,*) 'area:             ',get_total_area_of_element(ie)
+	write(iu,*) 'nen3v  :          ',(kn(ii),ii=1,n)
 	write(iu,*) 'hev:              ',hev(ie)
 	write(iu,*) 'zeov:             ',(zeov(ii,ie),ii=1,n)
 	write(iu,*) 'zenv:             ',(zenv(ii,ie),ii=1,n)
-	write(iu,*) 'zov:              ',(zov(nen3v(ii,ie)),ii=1,n)
-	write(iu,*) 'znv:              ',(znv(nen3v(ii,ie)),ii=1,n)
+	write(iu,*) 'zov:              ',(zov(kn(ii)),ii=1,n)
+	write(iu,*) 'znv:              ',(znv(kn(ii)),ii=1,n)
 	write(iu,*) 'hdeov:            ',(hdeov(l,ie),l=1,lmax)
 	write(iu,*) 'hdenv:            ',(hdenv(l,ie),l=1,lmax)
 	write(iu,*) 'utlov:            ',(utlov(l,ie),l=1,lmax)
@@ -1161,7 +1163,8 @@ c writes debug information on nodes in element ie
 	integer iucheck
 	common /iucheck/iucheck
 
-	integer ii,k,iu
+	integer ii,k,iu,n
+	integer kn(3)
 	integer ieext
 
 	iu = iucheck
@@ -1170,9 +1173,10 @@ c writes debug information on nodes in element ie
 	write(iu,*) 'checking nodes in element: ',ie,ieext(ie)
 	write(iu,*) '-------------------------------------------'
 
-	do ii=1,3
-	  k = nen3v(ii,ie)
-	  if( k == 0 ) cycle
+	call basin_get_vertex_nodes(ie,n,kn)
+
+	do ii=1,2
+	  k = kn(ii)
 	  call check_node(k)
 	end do
 
@@ -1193,7 +1197,8 @@ c writes debug information on elements around node k
 	integer iucheck
 	common /iucheck/iucheck
 
-	integer ie,ii,kk,iu
+	integer ie,ii,kk,iu,n
+	integer kn(3)
 	logical bdebug
 
 	integer ipext
@@ -1206,9 +1211,9 @@ c writes debug information on elements around node k
 
 	do ie=1,nel
 	  bdebug = .false.
-	  do ii=1,3
-	    kk = nen3v(ii,ie)
-	    if( kk == 0 ) cycle
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    kk = kn(ii)
 	    if( kk .eq. k ) bdebug = .true.
 	  end do
 	  if( bdebug ) call check_elem(ie)

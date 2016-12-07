@@ -109,6 +109,7 @@ c
 c local
 	logical bcolin
 	integer ie,k,ii,n
+	integer kn(3)
 	real area,zm,hm
 	real vv(nkn)
 c function
@@ -123,12 +124,12 @@ c
 c
 	do ie=1,nel
 	  if( iwegv(ie) /= 0 ) cycle
-	  call get_vertex_area_of_element(ie,n,area)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  zm = sum(zenv(1:n,ie)) / n
 	  hm=hev(ie)
 	  if(.not.bcolin) hm=hm+zm
 	  do ii=1,n
-	    k=nen3v(ii,ie)
+	    k=kn(ii)
 	    vv(k)=vv(k)+area
 	    up0v(k)=up0v(k)+area*unv(ie)/hm
 	    vp0v(k)=vp0v(k)+area*vnv(ie)/hm
@@ -159,6 +160,7 @@ c transforms velocities to nodal values
 	implicit none
 
 	integer ie,l,k,ii,n
+	integer kn(3)
 	integer lmax
 	real area
 	real, allocatable :: vv(:,:)
@@ -172,11 +174,11 @@ c baroclinic part
 
 	do ie=1,nel
 	  if ( iwegv(ie) /= 0 ) cycle
-	  call get_vertex_area_of_element(ie,n,area)
+	  call get_vertex_area_of_element(ie,n,kn,area)
           lmax = ilhv(ie)
 	  do l=1,lmax
 	    do ii=1,n
-	      k=nen3v(ii,ie)
+	      k=kn(ii)
 	      vv(l,k)=vv(l,k)+area
 	      uprv(l,k)=uprv(l,k)+area*ulnv(l,ie)
 	      vprv(l,k)=vprv(l,k)+area*vlnv(l,ie)
@@ -214,18 +216,19 @@ c
 	implicit none
 
 	integer ie,l,k,ii,n
+	integer kn(3)
 	real u,v
 c
 c baroclinic part
 c
 	do ie=1,nel
 	 if( iwegv(ie) .eq. 0 ) then
-	  n = basin_get_vertex_of_element(ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
 	  do l=1,ilhv(ie)
 	    u=0.
 	    v=0.
 	    do ii=1,n
-	      k=nen3v(ii,ie)
+	      k=kn(ii)
 	      u=u+uprv(l,k)
 	      v=v+vprv(l,k)
 	    end do

@@ -77,6 +77,18 @@ c  1	spherical (lat/lon)
      +                          ,get_vertex_area_of_element_kbcd
         END INTERFACE
 
+        INTERFACE		 get_derivative_of_vertex
+        MODULE PROCEDURE
+     +                           get_derivative_of_vertex_r
+     +                          ,get_derivative_of_vertex_d
+        END INTERFACE
+
+        INTERFACE		 get_tangent_direction
+        MODULE PROCEDURE
+     +                           get_tangent_direction_r
+     +                          ,get_tangent_direction_d
+        END INTERFACE
+
 !==================================================================
         contains
 !==================================================================
@@ -132,6 +144,19 @@ c****************************************************************
 	end if
 
 	end function get_finvol_area_of_element
+
+c****************************************************************
+
+	pure function get_aomega_area_of_element(ie)
+
+	use basin
+
+	double precision 	:: get_aomega_area_of_element
+	integer, intent(in)	:: ie
+
+	get_aomega_area_of_element = ev(10,ie)
+
+	end function get_aomega_area_of_element
 
 c****************************************************************
 
@@ -272,6 +297,110 @@ c****************************************************************
 	c(1:n) = ev(6+1:6+n,ie)
 
 	end subroutine get_vertex_area_of_element_kbcd
+
+c****************************************************************
+
+	pure function get_angle_of_vertex(ii,ie)
+
+	double precision 		:: get_angle_of_vertex
+	integer, intent(in)		:: ii
+	integer, intent(in)		:: ie
+
+	get_angle_of_vertex = ev(10+ii,ie)
+
+	end function get_angle_of_vertex
+
+c****************************************************************
+
+	pure function get_distance_of_vertex(ii,ie)
+
+	double precision		:: get_distance_of_vertex
+	integer, intent(in)		:: ii
+	integer, intent(in)		:: ie
+
+	get_distance_of_vertex = ev(16+ii,ie)
+
+	end function get_distance_of_vertex
+
+c****************************************************************
+
+	pure subroutine get_derivative_of_vertex_r(ii,ie,b,c)
+
+	integer, intent(in)		:: ii
+	integer, intent(in)		:: ie
+	real, intent(out)		:: b,c
+
+	b = ev(3+ii,ie)
+	c = ev(6+ii,ie)
+
+	end subroutine get_derivative_of_vertex_r
+
+c****************************************************************
+
+	pure subroutine get_derivative_of_vertex_d(ii,ie,b,c)
+
+	integer, intent(in)		:: ii
+	integer, intent(in)		:: ie
+	double precision, intent(out)	:: b,c
+
+	b = ev(3+ii,ie)
+	c = ev(6+ii,ie)
+
+	end subroutine get_derivative_of_vertex_d
+
+c****************************************************************
+
+	pure subroutine get_tangent_direction_r(ie,tx,ty)
+
+	use basin
+
+	integer, intent(in)		:: ie
+	real, intent(out)		:: tx,ty
+
+	integer k1,k2
+	real dx,dy,dd
+
+	if( basin_element_is_1d(ie) ) then
+	  k1 = nen3v(1,ie)
+	  k2 = nen3v(2,ie)
+	  dx = xgv(k2) - xgv(k1)
+	  dy = ygv(k2) - ygv(k1)
+	  dd = ev(19,ie)		!length of vertex 3 (p2-p1)
+	  tx = dx / dd
+	  ty = dy / dd
+	else
+	  tx = 0.
+	  ty = 0.
+	end if
+
+	end subroutine get_tangent_direction_r
+
+c****************************************************************
+
+	pure subroutine get_tangent_direction_d(ie,tx,ty)
+
+	use basin
+
+	integer, intent(in)		:: ie
+	double precision, intent(out)	:: tx,ty
+
+	integer k1,k2
+	double precision dx,dy,dd
+
+	if( basin_element_is_1d(ie) ) then
+	  k1 = nen3v(1,ie)
+	  k2 = nen3v(2,ie)
+	  dx = xgv(k2) - xgv(k1)
+	  dy = ygv(k2) - ygv(k1)
+	  dd = ev(19,ie)		!length of vertex 3 (p2-p1)
+	  tx = dx / dd
+	  ty = dy / dd
+	else
+	  tx = 0.
+	  ty = 0.
+	end if
+
+	end subroutine get_tangent_direction_d
 
 !==================================================================
         end module evgeom

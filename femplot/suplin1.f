@@ -93,38 +93,31 @@ c and vertical velocities to center of layer
 
 	implicit none
 
-	integer ie,ii,k,l,lmax
-	real aj
+	integer ie,ii,k,l,lmax,n
+	integer kn(3)
+	real area
 
-        do k=1,nkn
-          do l=1,nlv
-            uprv(l,k)=0.
-            vprv(l,k)=0.
-            wprv(l,k)=0.
-          end do
-        end do
+        uprv=0.
+        vprv=0.
+        wprv=0.
 
         do ie=1,nel
-          aj=ev(10,ie)
+	  call get_vertex_area_of_element_kr(ie,n,kn,area)
 	  lmax = ilhv(ie)
-          do ii=1,3
-            k=nen3v(ii,ie)
+          do ii=1,n
+            k=kn(ii)
 	    do l=1,lmax
-              wprv(l,k)=wprv(l,k)+aj
-              uprv(l,k)=uprv(l,k)+aj*ulnv(l,ie)
-              vprv(l,k)=vprv(l,k)+aj*vlnv(l,ie)
+              wprv(l,k)=wprv(l,k)+area
+              uprv(l,k)=uprv(l,k)+area*ulnv(l,ie)
+              vprv(l,k)=vprv(l,k)+area*vlnv(l,ie)
             end do
 	  end do
 	end do
 
-        do k=1,nkn
-	  do l=1,nlv
-            if(wprv(l,k).gt.0.) then
-              uprv(l,k)=uprv(l,k)/wprv(l,k)
-              vprv(l,k)=vprv(l,k)/wprv(l,k)
-            end if
-          end do
-        end do
+	where( wprv > 0 )
+          uprv=uprv/wprv
+          vprv=vprv/wprv
+	end where
 
         do k=1,nkn
           do l=1,nlv

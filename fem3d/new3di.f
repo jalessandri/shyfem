@@ -387,7 +387,7 @@ c 12.01.2001    ggu     solve for znv and not level difference (ZNEW)
 	logical bcolin
 	logical bdebug
 	integer kn(3)
-	integer ie,i,j,j1,j2,n,m,kk,l,k
+	integer ie,i,j,j1,j2,n,m,kk,l,k,nv,ii
 	integer ngl
 	integer ilevel
 	integer ju,jv
@@ -396,21 +396,8 @@ c 12.01.2001    ggu     solve for znv and not level difference (ZNEW)
 	real dt
 	real hia(3,3),hik(3)
 
-	!real az,am,af
-	!real zm
-	!real ht
-	!real amatr(3,3)
-	!real delta,h11,hh999
-	!real z(3)
-	!real andg,zndg(3)
-	!real b(3),c(3)
-	!real acu
-	!real uold,vold
-	!real ut,vt,uhat,vhat
-	!real dbb,dbc,dcb,dcc,abn,acn
-
-	double precision aj,rw,ddt
-	double precision amatr(3,3)
+	double precision area,areat,rw,r,ddt
+	double precision amatr(3,3),ident(3,3)
 	double precision delta,h11,hh999
 	double precision z(3)
 	double precision andg,zndg(3)
@@ -424,6 +411,7 @@ c 12.01.2001    ggu     solve for znv and not level difference (ZNEW)
 
 c	data amatr / 2.,1.,1.,1.,2.,1.,1.,1.,2. /	!original
 	data amatr / 4.,0.,0.,0.,4.,0.,0.,0.,4. /	!lumped
+	data ident / 1.,0.,0.,0.,1.,0.,0.,0.,1. /	!identity
 
         integer locsps,loclp,iround
 	real getpar
@@ -458,28 +446,19 @@ c	------------------------------------------------------
 c	compute level gradient
 c	------------------------------------------------------
 
-	zm=0.
-	do i=1,3
-		kk=nen3v(i,ie)
-		kn(i)=kk
-		b(i)=ev(i+3,ie)
-		c(i)=ev(i+6,ie)
-		!z(i)=zov(kk)
-		z(i)=zeov(i,ie)		!ZEONV
-		zndg(i) = andgzv(kk)	!nudging
-		zm=zm+z(i)
+	call get_vertex_area_of_element(ie,nv,kn,b,c,area)
+	areat = nv * area
+
+	zm = basin_vertex_average_2d(ie,zeov)
+
+	z = 0.
+	zndg = 0.
+	do ii=1,nv
+	  z(ii) = zeov(ii,ie)
+	  zndg(ii) = andgzv(kn(ii))	!nudging
 	end do
 
-	zm=zm*drittl
-
-	!if(bcolin) then
-	!	ht=hev(ie)
-	!else
-	!	ht=hev(ie)+zm
-	!end if
-
 	ilevel=ilhv(ie)
-	aj=ev(10,ie)
         afix=1-iuvfix(ie)      !chao deb
 
         delta=ddt*ddt*az*am*grav*afix         !ASYM_OPSPLT        !chao deb
@@ -524,36 +503,38 @@ c	------------------------------------------------------
 c	set element matrix and RHS
 c	------------------------------------------------------
 
-	do n=1,3
-	  do m=1,3
+	hia = 0.
+	hik = 0.
+
+	do n=1,nv
+	  acu = 0.
+	  do m=1,nv
 	    abn = b(n) * ( b(m) * dbb + c(m) * dbc )
 	    acn = c(n) * ( b(m) * dcb + c(m) * dcc )
 	    h11 = delta*( abn + acn )			!ASYM_OPSPLT_CH
-	    hia(n,m) = aj * (amatr(n,m) + 12.*h11)
+	    !hia(n,m) = aj * (amatr(n,m) + 12.*h11)
+	    hia(n,m) = area * (ident(n,m) + nv*h11)
+	    acu = acu + hia(n,m)*z(m)
 	  end do
-	  acu = hia(n,1)*z(1) + hia(n,2)*z(2) + hia(n,3)*z(3)
-	  andg = 4.*aj*ddt*zndg(n)
-	  !hia(n,n) = hia(n,n) + 4 * ddt * aj / tau
-	  hik(n) = acu + andg + 12.*aj*ddt*( ut*b(n) + vt*c(n) )	!ZNEW
+	  !acu = hia(n,1)*z(1) + hia(n,2)*z(2) + hia(n,3)*z(3)
+	  andg = area*ddt*zndg(n)
+	  hik(n) = acu + andg + areat*ddt*( ut*b(n) + vt*c(n) )	!ZNEW
 	end do
 
 c	------------------------------------------------------
 c	level boundary conditions
 c	------------------------------------------------------
 
-	do i=1,3
+	do i=1,nv
 	  if(rzv(kn(i)).ne.flag) then
 		!rw=rzv(kn(i))-zov(kn(i))	!this for dz
 		rw=rzv(kn(i))			!FIXME !ZNEW (this for znew)
-		j1=mod(i,3)+1
-		j2=mod(i+1,3)+1
-		hik(j1)=hik(j1)-rw*hia(j1,i)
-		hik(j2)=hik(j2)-rw*hia(j2,i)
-		hia(i,j1)=0.
-		hia(i,j2)=0.
-		hia(j1,i)=0.
-		hia(j2,i)=0.
-		!hia(i,i)=12.*aj
+		r = hia(i,i)
+		hik(:)=hik(:)-rw*hia(:,i)
+		hia(i,:)=0.
+		hia(:,i)=0.
+		hia(i,i)=r
+		!hia(i,i)=areat
 		hik(i)=rw*hia(i,i)
 	  end if
 	  !call handle_ship_boundary(it,i,k,hia,hik)
@@ -564,7 +545,7 @@ c	excluded areas
 c	------------------------------------------------------
 
           if( iseout(ie) ) then	!ZEONV
-            hh999=aj*12.
+            hh999=areat
             do n=1,3
               do m=1,3
                 hia(n,m)=hh999*(b(n)*b(m)+c(n)*c(m))
@@ -572,12 +553,10 @@ c	------------------------------------------------------
               hik(n)=0.
             end do
 
-            do n=1,3
+            do n=1,nv
               if( iskbnd(kn(n)) ) then	!not internal and not out of system
-                do m=1,3
-                  hia(n,m)=0.
-                  !hia(m,n)=0.		!gguexclude - comment
-                end do
+                hia(n,:)=0.
+                !hia(:,n)=0.		!gguexclude - comment
                 hik(n)=0.
               end if
             end do
@@ -770,7 +749,7 @@ c local
 	logical debug,bdebug
         logical bdebggu
 	integer kn(3)
-	integer kk,ii,l,ju,jv
+	integer kk,ii,l,ju,jv,nv
 	integer ngl,mbb
 	integer ilevel,ier,ilevmin
 	integer lp,lm
@@ -800,11 +779,14 @@ c local
 	real ss
 
 	double precision b(3),c(3)
+	double precision area
 	double precision bpres,cpres
 	double precision zz,zm,zmm
 	double precision bz,cz
 	double precision taux,tauy,rdist
-	double precision vis
+	double precision tx,ty			!tangent direction for 1d
+	double precision wavex,wavey
+	double precision vis,vis1,vis2
 	double precision uuadv,uvadv,vuadv,vvadv
         
 c-----------------------------------------
@@ -849,6 +831,8 @@ c-------------------------------------------------------------
 c compute barotropic terms (wind, atmospheric pressure, water level
 c-------------------------------------------------------------
 
+	call get_vertex_area_of_element(ie,nv,kn,b,c,area)
+
 	bz=0.
 	cz=0.
 	bpres=0.
@@ -858,11 +842,8 @@ c-------------------------------------------------------------
 	taux=0.
 	tauy=0.
         rdist = 0.
-	do ii=1,3
-	  kk=nen3v(ii,ie)
-	  kn(ii)=kk
-	  b(ii)=ev(ii+3,ie)
-	  c(ii)=ev(ii+6,ie)
+	do ii=1,nv
+	  kk=kn(ii)
 
 	  zz = zeov(ii,ie) - zeqv(kk)	!tide
 
@@ -878,11 +859,17 @@ c-------------------------------------------------------------
           rdist = rdist + rdistv(kk)
 	end do
 
-	zm=zm*drittl
-	zmm=zmm*drittl
-	taux=taux*drittl
-	tauy=tauy*drittl
-        rdist = rdist * drittl
+	zm=zm/nv
+	zmm=zmm/nv
+	taux=taux/nv
+	tauy=tauy/nv
+        rdist = rdist/nv
+
+	if( nv == 2 ) then
+	  call get_tangent_direction(ie,tx,ty)
+	  taux = taux * tx + tauy * ty
+	  tauy = 0.
+	end if
 
 c-------------------------------------------------------------
 c coriolis parameter
@@ -893,6 +880,11 @@ c	gammat=fcorv(ie)*rdist
 
 	gammat=fcorv(ie)*rdist 
         gamma=af*dt*gammat
+
+	if( nv == 2 ) then
+	  gamma = 0.
+	  gammat = 0.
+	end if
 
 c-------------------------------------------------------------
 c reset vertical system 
@@ -932,14 +924,14 @@ c-------------------------------------------------------------
 c compute element averaged turbulent viscosity
 c-------------------------------------------------------------
 
-	k1 = nen3v(1,ie)
-	k2 = nen3v(2,ie)
-	k3 = nen3v(3,ie)
 	do l=0,ilevel
-	    vis = vismol
-	    vis = vis + (visv(l,k1)+visv(l,k2)+visv(l,k3))/3.
-	    vis = vis + (vts(l,k1)+vts(l,k2)+vts(l,k3))/3.
-	    alev(l) = vis
+	    vis1 = 0.
+	    vis2 = 0.
+	    do ii=1,nv
+	      vis1 = vis1 + visv(l,kn(ii))
+	      vis2 = vis2 + vts(l,kn(ii))
+	    end do
+	    alev(l) = vismol + ( vis1 + vis2 ) / 3.
 	end do
 
 c-------------------------------------------------------------
@@ -1034,8 +1026,8 @@ c	------------------------------------------------------
 	uc = uui/hhi
 	vc = vvi/hhi
 
-	do ii=1,3
-          k = nen3v(ii,ie)
+	do ii=1,nv
+          k = kn(ii)
           up = momentxv(l,k) / hhi
           vp = momentyv(l,k) / hhi
           f = uui * b(ii) + vvi * c(ii)
@@ -1058,6 +1050,14 @@ c	------------------------------------------------------
         xexpl = rdist * fxv(l,ie)
         yexpl = rdist * fyv(l,ie)
 
+	wavex = wavefx(l,ie)
+	wavey = wavefy(l,ie)
+
+	if( nv == 2 ) then
+	  wavex = wavex * tx + wavey * ty
+	  wavey = 0.
+	end if
+
 c	------------------------------------------------------
 c	ppx/ppy is contribution on the left side of equation
 c	ppx corresponds to -F^x_l in the documentation
@@ -1066,10 +1066,12 @@ c	------------------------------------------------------
 
 	ppx = ppx + aat*uui - bbt*uuip - cct*uuim - gammat*vvi 
      +			+ grav*hhi*bz + (hhi/rowass)*bpres + xexpl 
-     +  		+ wavefx(l,ie)
+     +  		+ wavex
 	ppy = ppy + aat*vvi - bbt*vvip - cct*vvim + gammat*uui 
      +			+ grav*hhi*cz + (hhi/rowass)*cpres + yexpl 
-     +  		+ wavefy(l,ie)
+     +  		+ wavey
+
+	if( nv == 2 ) ppy = 0.
 
 c	------------------------------------------------------
 c	set up matrix A
@@ -1137,6 +1139,8 @@ c-------------------------------------------------------------
 	  utlnv(l,ie) = utlov(l,ie) - dt * rvec(2*l-1)*afix     !chao deb
 	  vtlnv(l,ie) = vtlov(l,ie) - dt * rvec(2*l)*afix       !chao deb
 	end do
+
+	if( nv == 2 ) vtlnv(1:ilevel,ie) = 0.
 
 c-------------------------------------------------------------
 c save contribution A^{-1} H^x and A^{-1} H^y
@@ -1233,7 +1237,8 @@ c
 	include 'femtime.h'
 
 	logical bcolin,bdebug
-	integer ie,ii,l,kk
+	integer ie,ii,l,kk,n
+	integer kn(3)
 	integer ilevel
 	integer ju,jv
         integer afix            !chao deb
@@ -1242,6 +1247,8 @@ c
 	double precision bz,cz,um,vm
 	double precision dz
 	double precision du,dv
+	double precision b(3),c(3)
+	double precision area
 c function
 	integer iround
 	real getpar
@@ -1274,14 +1281,15 @@ c	------------------------------------------------------
 c	compute barotropic pressure term
 c	------------------------------------------------------
 
+	call get_vertex_area_of_element(ie,n,kn,b,c,area)
+
 	bz=0.
 	cz=0.
-	do ii=1,3
-	  kk=nen3v(ii,ie)
+	do ii=1,n
+	  kk=kn(ii)
 	  dz = znv(kk) - zeov(ii,ie)
-	  !zm = zm + zeov(ii,ie)		!ZEONV
-	  bz = bz + dz * ev(ii+3,ie)
-	  cz = cz + dz * ev(ii+6,ie)
+	  bz = bz + dz * b(ii)
+	  cz = cz + dz * c(ii)
 	end do
 
 c	------------------------------------------------------
@@ -1300,6 +1308,8 @@ c	------------------------------------------------------
 	  vtlnv(l,ie) = vtlnv(l,ie) - dv*afix   !chao deb
 
 	end do
+
+	if( n == 2 ) vtlnv(1:ilevel,ie) = 0.
 
 c	------------------------------------------------------
 c	barotropic transports
@@ -1371,7 +1381,8 @@ c arguments
 	real dzeta(nkn)
 c local
 	logical debug
-	integer k,ie,ii,kk,l,lmax
+	integer k,ie,ii,kk,l,lmax,n
+	integer kn(3)
 	integer ilevel
         integer ibc,ibtyp
 	real aj,wbot,wdiv,ff,atop,abot,wfold
@@ -1380,6 +1391,8 @@ c local
 	real ffn,ffo
 	real volo,voln,dt,dvdt,q
 	real dzmax,dz
+	real area,areat
+	real bb(3),cc(3)
 	real, allocatable :: vf(:,:)
 	real, allocatable :: va(:,:)
 c statement functions
@@ -1410,19 +1423,20 @@ c aj * ff -> [m**3/s]     ( ff -> [m/s]   aj -> [m**2]    b,c -> [1/m] )
 
 	do ie=1,nel
 	 !if( isein(ie) ) then		!FIXME
-	  aj=4.*ev(10,ie)		!area of triangle / 3
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
+	  areat = n * area
 	  ilevel = ilhv(ie)
 	  do l=1,ilevel
-	    do ii=1,3
-		kk=nen3v(ii,ie)
-		b = ev(ii+3,ie)
-		c = ev(ii+6,ie)
+	    do ii=1,n
+		kk=kn(ii)
+		b = bb(ii)
+		c = cc(ii)
 		ffn = utlnv(l,ie)*b + vtlnv(l,ie)*c
 		ffo = utlov(l,ie)*b + vtlov(l,ie)*c
 		ff = ffn * az + ffo * azt
 		!ff = ffn
-		vf(l,kk) = vf(l,kk) + 3. * aj * ff
-		va(l,kk) = va(l,kk) + aj
+		vf(l,kk) = vf(l,kk) + areat * ff
+		va(l,kk) = va(l,kk) + area
 	    end do
 	  end do
 	 !end if

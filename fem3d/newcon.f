@@ -1486,7 +1486,7 @@ c common
 
 c local
 	logical bdebug,bdebug1,debug
-	integer k,ie,ii,l,iii
+	integer k,ie,ii,l,iii,nv
 	integer lstart
 	integer ilevel
 	integer itot,isum	!$$flux
@@ -1496,7 +1496,7 @@ c local
 	double precision us,vs
 	double precision az,azt
 	double precision aa,aat,ad,adt
-	double precision aj,rk3,rv,aj4
+	double precision area,areat,rk3,rv,aj4
 	double precision hmed,hmbot,hmtop
 	double precision rvptop,rvpbot
 	double precision dt,w,aux
@@ -1642,7 +1642,7 @@ c	-----------------------------------------------------------------
 	  hdv(l) = 0.		!layer thickness
           haver(l) = 0.
 	  present(l) = 0.	!1. if layer is present
-	  do ii=1,3
+	  do ii=1,nv
 	    hnew(l,ii) = 0.	!as hreal but with zeta_new
 	    hold(l,ii) = 0.	!as hreal but with zeta_old
 	    !cl(l,ii) = 0.	!concentration in layer
@@ -1674,15 +1674,9 @@ c-----------------------------------------------------------------
 
         do ie=1,nel
 
-	do ii=1,3
-          k=nen3v(ii,ie)
-	  kn(ii)=k
-	  b(ii)=ev(ii+3,ie)
-	  c(ii)=ev(ii+6,ie)
-	end do
+	call get_vertex_area_of_element(ie,nv,kn,b,c,area)
+	areat = nv * area
 
-	aj=ev(10,ie)    !area of triangle / 12
-	aj4=4.*aj
         ilevel=ilhv(ie)
 
 c set up vectors for use in assembling contributions
@@ -1691,7 +1685,7 @@ c set up vectors for use in assembling contributions
 	  hdv(l) = hdeov(l,ie)		!use old time step -> FIXME
           haver(l) = 0.5 * ( hdeov(l,ie) + hdenv(l,ie) )
 	  present(l) = 1.
-	  do ii=1,3
+	  do ii=1,nv
 	    k=kn(ii)
 	    hn = hdknv(l,k)		! there are never more layers in ie
 	    ho = hdkov(l,k)		! ... than in k
@@ -1715,9 +1709,7 @@ c	we set wl(ilevel,ii) to 0 because we are on the bottom
 c	and there should be no contribution from this element
 c	to the vertical velocity
 
-	do ii=1,3
-	  wl(ilevel,ii) = 0.
-	end do
+	wl(ilevel,:) = 0.
 
 c-----------------------------------------------------------------
 c loop over levels
@@ -1728,11 +1720,12 @@ c-----------------------------------------------------------------
         us=az*utlnv(l,ie)+azt*utlov(l,ie)             !$$azpar
         vs=az*vtlnv(l,ie)+azt*vtlov(l,ie)
 
-        rk3 = 3. * rkpar * difhv(l,ie)
+        !rk3 = 3. * rkpar * difhv(l,ie)
+        rk3 = rkpar * difhv(l,ie)
 
 	itot=0
 	isum=0
-	do ii=1,3
+	do ii=1,nv
 	  k=kn(ii)
 	  f(ii)=us*b(ii)+vs*c(ii)	!$$azpar
 	  if(f(ii).lt.0.) then	!flux out of node
@@ -1800,20 +1793,20 @@ c	  time dependent layer thickness
 
 c sum explicit contributions
 
-	do ii=1,3
+	do ii=1,nv
 	  k=kn(ii)
           hmed = hold(l,ii)                      !new ggu   !HACK
-          cexpl = dt * aj4 * rk3 * hmed * wdiff(ii)	!bug fix 12.2.2010
+          cexpl = dt * areat * rk3 * hmed * wdiff(ii)	!bug fix 12.2.2010
 	  clow(l,k) = clow(l,k) + cexpl
-          cexpl = dt * aj4 * 3. * f(ii)
+          cexpl = dt * areat * f(ii)
           if( cexpl .lt. 0. ) then             !flux out of node
 	    !chigh(l,k) = chigh(l,k) - cexpl
           end if
           if( cexpl .gt. 0. ) then             !flux into node
 	    chigh(l,k) = chigh(l,k) + cexpl
           end if
-          cn(l,k) = cn(l,k) + dt * aj4 * ( fw(ii) + fd(ii) )
-          co(l,k) = co(l,k) + dt * aj4 * hmed * robs * rtauv(l,k) !nudging
+          cn(l,k) = cn(l,k) + dt * area * ( fw(ii) + fd(ii) )
+          co(l,k) = co(l,k) + dt * area * hmed * robs * rtauv(l,k) !nudging
 	end do
 
 	end do		! loop over l
@@ -1824,20 +1817,20 @@ c cdiag is diagonal of tri-diagonal system
 c chigh is high (right) part of tri-diagonal system
 c clow is low (left) part of tri-diagonal system
 
-	do ii=1,3
+	do ii=1,nv
 	  clm(1,ii) = 0.
 	  clp(ilevel,ii) = 0.
 	end do
 
         do l=1,ilevel
-	  do ii=1,3
+	  do ii=1,nv
 	    k=kn(ii)
-	    !clow(l,k)  = clow(l,k)  + aj4 * dt * clm(l,ii)
-	    !chigh(l,k) = chigh(l,k) + aj4 * dt * clp(l,ii)
-	    !cdiag(l,k) = cdiag(l,k) + aj4 * dt * clc(l,ii)
-	    !clow(l,k)  = clow(l,k)  + aj4 * hold(l,ii)
+	    !clow(l,k)  = clow(l,k)  + area * dt * clm(l,ii)
+	    !chigh(l,k) = chigh(l,k) + area * dt * clp(l,ii)
+	    !cdiag(l,k) = cdiag(l,k) + area * dt * clc(l,ii)
+	    !clow(l,k)  = clow(l,k)  + area * hold(l,ii)
             hmed = min(hold(l,ii),hnew(l,ii))
-	    cdiag(l,k) = cdiag(l,k) + aj4 * hmed
+	    cdiag(l,k) = cdiag(l,k) + area * hmed
 	  end do
 	end do
 

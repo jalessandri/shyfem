@@ -610,7 +610,8 @@ c outputs particles as density (concentration) to NOS file
 	include 'femtime.h'
 
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	integer ic,i
 	integer ip,ip_station
 	integer nvar,ivar,nlvdi
@@ -663,9 +664,9 @@ c---------------------------------------------------------
 
 	do ie=1,nel
 	  ic = ecount(ie)
-	  area_node = 4*ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area_node)
+	  do ii=1,n
+	    k = kn(ii)
 	    kcount(k) = kcount(k) + ic
 	    area(k) = area(k) + area_node
 	  end do

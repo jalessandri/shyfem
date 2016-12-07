@@ -1355,7 +1355,8 @@ c*************************************************************
 	save ilast2
 
 	logical berror
-	integer k,ie,ii,ia,i
+	integer k,ie,ii,ia,i,n
+	integer kn(ii)
 	integer itype
 	real area
 	real litri,kgs
@@ -1808,9 +1809,9 @@ c     intialize
 c     compute total volume for all areas given -> store in volaux
 
 	do ie=1,nel
-	  area = 4. * ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call get_vertex_area_of_element(ie,n,area)
+	  do ii=1,n
+	    k = kn(ii)
 	    hdep = hm3v(ii,ie)
 	    ia = aree(k)
 	    if( ia .gt. nimmis ) stop 'error stop ia'

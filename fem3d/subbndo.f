@@ -100,7 +100,6 @@ c sets up bndo data structure
 	real dx,dy
 
 	integer nkbnds,itybnd,kbnds,ipext,nbnds
-	real areaele
 
 c----------------------------------------------------------
 c set up array iopbnd

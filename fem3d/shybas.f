@@ -657,7 +657,8 @@ c makes unique depth
 
 	implicit none
 
-	integer k,ie,ii
+	integer k,ie,ii,n
+	integer kn(3)
 	double precision h,area
 	double precision hkv(nkn)
 	double precision weight(nkn)
@@ -666,10 +667,10 @@ c makes unique depth
 	weight = 0.
 
 	do ie=1,nel
-	  area = ev(10,ie)
-	  do ii=1,3
+	  call get_vertex_area_of_element(ie,n,kn,area)
+	  do ii=1,n
 	    h = hm3v(ii,ie)
-	    k = nen3v(ii,ie)
+	    k = kn(ii)
 	    hkv(k) = hkv(k) + h*area
 	    weight(k) = weight(k) + area
 	  end do
@@ -680,8 +681,9 @@ c makes unique depth
 	end do
 
 	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    hm3v(ii,ie) =  hkv(k)
 	  end do
 	end do
@@ -806,7 +808,8 @@ c writes statistics on grid quality
 
 	real areav(nkn)
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	integer ia,ic,ilow,ihigh
 	integer imin,imax
 	real area,amin,amax,atot
@@ -840,9 +843,9 @@ c compute fraction
 c-----------------------------------------------------------------
 
 	do ie=1,nel
-	  area = 4.*ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  area = get_finvol_area_of_element(ie)
+	  do ii=1,n
+	    k = kn(ii)
 	    areav(k) = areav(k) + area
 	  end do
 	end do
@@ -850,10 +853,10 @@ c-----------------------------------------------------------------
 	fmax = 0
 	fmin = 10.
 	do ie=1,nel
-	  area = 12.*ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  amax = 0.
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  do ii=1,n
+	    k = kn(ii)
 	    a = areav(k)
 	    amax = max(amax,a)
 	  end do
@@ -885,10 +888,10 @@ c-----------------------------------------------------------------
 	end do
 
 	do ie=1,nel
-	  area = 4.*ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    a = ev(10+ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
+	    a = get_angle_of_vertex(ii,ie)
 	    ia = a / 10.
 	    if( ia .ge. 16 ) then
 		write(6,*) 'bad angle found: ',k,ipext(k),a
@@ -954,7 +957,8 @@ c writes statistics on basin
 
         implicit none
 
-        integer ie,ii,k,i
+        integer ie,ii,k,i,n
+	integer kn(3)
         integer imin,imax
         real area,amin,amax
         real x(3),y(3)
@@ -1003,9 +1007,10 @@ c-----------------------------------------------------------------
 	icount = 0
 
         do ie=1,nel
-          do ii=1,3
-            k = nen3v(ii,ie)
-            w = ev(10+ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
+            k = kn(ii)
+            w = get_angle_of_vertex(ii,ie)
             iang = (w-90.)/10. + 1. - eps
 	    if( iang > ndim ) stop 'error stop bascheck: iang'
             if( iang .gt. 0 ) then
@@ -1023,9 +1028,10 @@ c             write(6,*) k,ii,w,iang
         end do
 
         do ie=1,nel
-          do ii=1,3
-            k = nen3v(ii,ie)
-            w = ev(10+ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
+            k = kn(ii)
+            w = get_angle_of_vertex(ii,ie)
             if( w .gt. 120. ) then
               write(6,*) 'big angle ',ipext(k),' : ',w
             end if

@@ -94,7 +94,7 @@ c administers bfm ecological model
 	integer it
 	real dt
 
-	real getpar,areaele
+	real getpar
 
 	integer ibfm
 	save ibfm

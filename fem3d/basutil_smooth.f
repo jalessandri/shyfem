@@ -177,8 +177,9 @@ c smoothes depth values
 	integer niter
 	real f(4)
 
-	integer ie,ii,k,i,nok
-	real x,y,d,h,hold,hnew,ao
+	integer ie,ii,k,i,nok,n
+	integer kn(3)
+	real x,y,d,h,hold,hnew,area
 	real hmin
 	real alpha,beta
         real h1,h2,a1,a2
@@ -216,11 +217,11 @@ c	  -----------------------------------------------
 	  end do
 
 	  do ie=1,nel
-	    ao = ev(10,ie)
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      hkv(k) = hkv(k) + ao * hev(ie)
-	      v1v(k) = v1v(k) + ao
+	    call get_vertex_area_of_element(ie,n,area)
+	    do ii=1,n
+	      k = kn(ii)
+	      hkv(k) = hkv(k) + area * hev(ie)
+	      v1v(k) = v1v(k) + area
 	    end do
 	  end do
 

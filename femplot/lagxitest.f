@@ -70,8 +70,8 @@ c tests the internal coordinates and distances
 	  write(6,*) ie,nel
 	  write(6,*) xia
 	  write(6,*) xib
-	  write(6,*) (ev(10+ii,ie),ii=1,3)
-	  write(6,*) (ev(16+ii,ie),ii=1,3)
+	  write(6,*) (get_angle_of_vertex(ii,ie),ii=1,3)
+	  write(6,*) (get_distance_of_vertex(ii,ie),ii=1,3)
 	stop 'error stop: distances'
 	end
 

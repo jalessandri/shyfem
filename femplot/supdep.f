@@ -192,18 +192,17 @@ c makes area of finite volume
 
 	implicit none
 
-	integer ie,ii,k
-	real afvl
+	integer ie,ii,k,n
+	integer kn(3)
+	real area
 
-	do k=1,nkn
-	  arfvlv(k) = 0.
-	end do
+	arfvlv = 0.
 
 	do ie=1,nel
-	  afvl = 4. * ev(10,ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    arfvlv(k) = arfvlv(k) + afvl
+	  call get_vertex_area_of_element_kr(ie,n,kn,area)
+	  do ii=1,n
+	    k = kn(ii)
+	    arfvlv(k) = arfvlv(k) + area
 	  end do
 	end do
 

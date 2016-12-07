@@ -26,6 +26,7 @@ c 01.05.2016	ggu	new routines basin_has_basin()
 c 20.05.2016	ggu	estimate_ngr() returns exact ngr
 c 10.06.2016	ggu	new routine for inserting regular grid
 c 23.09.2016	ggu	new routines to check if basin has been read
+c 06.12.2016	ggu	new framework to deal with 1d elements
 c
 c***********************************************************
 c***********************************************************
@@ -37,9 +38,9 @@ c***********************************************************
 
         implicit none
 
-	logical, private, parameter :: enable_1d = .false. !true if 1d needed
+	logical, parameter :: enable_1d = .false. !true if 1d needed
 
-	logical, private, save :: has_1d = .false.	!true if 1d found
+	logical, save :: has_1d = .false.	!true if 1d found
 
         integer, private, save :: nkn_basin = 0
         integer, private, save :: nel_basin = 0
@@ -50,6 +51,9 @@ c***********************************************************
         integer, save :: nel = 0
         integer, save :: ngr = 0
         integer, save :: mbw = 0
+
+        integer, save :: nel_2d = 0	!2d elements (3 vertices)
+        integer, save :: nel_tot = 0	!total elements
 
         integer, save :: nkndi = 0	!these are needed when nkn changes
         integer, save :: neldi = 0
@@ -70,6 +74,8 @@ c***********************************************************
         real, save, allocatable :: xgv(:)
         real, save, allocatable :: ygv(:)
         real, save, allocatable :: hm3v(:,:)
+
+        real, save, allocatable :: widev(:)
 
         INTERFACE		 basin_read
         MODULE PROCEDURE 
@@ -125,6 +131,7 @@ c***********************************************************
 	  deallocate(xgv)
 	  deallocate(ygv)
 	  deallocate(hm3v)
+	  deallocate(widev)
 	end if
 
 	nkn = nk
@@ -144,6 +151,7 @@ c***********************************************************
 	allocate(xgv(nkn))
 	allocate(ygv(nkn))
 	allocate(hm3v(3,nel))
+	allocate(widev(nel))
 
 	end subroutine basin_init
 
@@ -209,6 +217,7 @@ c***********************************************************
 	call basin_init(nk,ne)			!here we set nkn, nel
 	rewind(iunit)
 	call sp13rr(iunit,nkn,nel)
+	call sp13_set_1d
 	bbasinread = .true.
 	!write(6,*) 'finished basin_read (module)'
 
@@ -443,6 +452,16 @@ c***********************************************************
 	end if
 
 	end function basin_element_is_1d
+
+c***********************************************************
+
+	pure function basin_has_1d()
+
+	logical				:: basin_has_1d
+
+	basin_has_1d = has_1d
+
+	end function basin_has_1d
 
 c***********************************************************
 c***********************************************************
@@ -834,6 +853,49 @@ c	call sp13ts(nvers,78,0)
 	write(6,*) 'Writing basin...'
 	write(6,*) 'Cannot write bas file on unit :',nb
 	stop 'error stop : sp13uw'
+	end
+
+c*************************************************
+
+	subroutine sp13_set_1d
+
+c sets 1d element structure
+
+	use basin
+
+	implicit none
+
+	integer ie
+
+	nel_tot = nel
+	widev = 0.
+
+	do ie=1,nel
+	  if( nen3v(3,ie) == 0 ) exit
+	end do
+
+	has_1d = .false.
+	nel_2d = ie - 1
+	if( nel_2d == nel ) return		!everything set
+
+	has_1d = .true.
+	if( .not. enable_1d ) then
+	  write(6,*) '1d elements found but no support compiled'
+	  write(6,*) nel,nel_2d
+	  write(6,*) 'please set enable_1d=.true. in module basin'
+	  stop 'error stop sp13_set_1d: no support for 1d network'
+	end if
+
+	do ie=nel_2d+1,nel
+	  if( nen3v(3,ie) /= 0 ) then	!no 2d elements allowed after or in 1d
+	    write(6,*) '2d elements found after 1d elements'
+	    write(6,*) nel,nel_2d,ie,nen3v(3,ie)
+	    stop 'error stop sp13_set_1d: wrong sequence of elements'
+	  end if
+	  widev(ie) = hm3v(3,ie)
+	  hm3v(3,ie) = 0.5 * ( hm3v(1,ie) + hm3v(2,ie) )
+	end do
+
 	end
 
 c*************************************************
