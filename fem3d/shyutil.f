@@ -153,6 +153,7 @@
 	use basin
 	use levels
 	use shyutil
+	use average
 
 	implicit none
 
@@ -305,15 +306,16 @@
 
 	use basin
 	use shyutil
+	use average
 
 	implicit none
 
 	integer ftype
 
 	if( ftype == 1 ) then
-	  call shy_make_zeta_from_elem(nel,shy_zenv,shy_zeta)
+	  call vertex_to_element(shy_zenv,shy_zeta)
 	else if( ftype == 2 ) then
-	  call shy_make_zeta_from_node(nkn,nel,nen3v,shy_znv,shy_zeta)
+	  call node_to_element(shy_znv,shy_zeta)
 	else
 	  shy_zeta = 0.
 	end if
@@ -322,49 +324,17 @@
 
 !***************************************************************
 
-	subroutine shy_make_zeta_from_node(nkn,nel,nen3v,znv,zeta)
+	subroutine shy_make_zeta_from_elem(nel,ze3v,zev)
 
-	implicit none
-
-	integer nkn,nel
-	integer nen3v(3,nel)
-	real znv(nkn)
-	real zeta(nel)
-
-	integer ie,k,ii
-	real z
-
-	do ie=1,nel
-	  z = 0.
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    z = z + znv(k)
-	  end do
-	  zeta(ie) = z / 3.
-	end do
-
-	end
-
-!***************************************************************
-
-	subroutine shy_make_zeta_from_elem(nel,zenv,zeta)
+	use average
 
 	implicit none
 
 	integer nel
-	real zenv(3,nel)
-	real zeta(nel)
+	real ze3v(3,nel)
+	real zev(nel)
 
-	integer ie,ii
-	real z
-
-	do ie=1,nel
-	  z = 0.
-	  do ii=1,3
-	    z = z + zenv(ii,ie)
-	  end do
-	  zeta(ie) = z / 3.
-	end do
+	call vertex_to_element(ze3v,zev)
 
 	end
 
@@ -414,14 +384,16 @@
 	use basin
 	use shyutil
 	use levels
+	use evgeom
 	use mod_depth
 
 	implicit none
 
 	logical bvolwrite,bdebug
-	integer ie,ii,k,l,lmax,nsigma,nlvaux,ks
+	integer ie,ii,k,l,lmax,nsigma,nlvaux,ks,nv
+	integer kn(3)
 	real z,h,hsigma,zeps
-	double precision ak,vk,ve
+	double precision ak,vk,ve,area
 	double precision, allocatable :: vole(:,:),volk(:,:)
 	real hl(nlv)		!aux vector for layer thickness
 
@@ -443,7 +415,8 @@
 	volk = 0.
 
 	do ie=1,nel
-	  ak = areae(ie) / 3.	!area of vertex
+	  call get_vertex_area_of_element(ie,nv,kn,area)
+	  ak = area
 	  h = hev(ie)
 	  z = shy_zeta(ie)
 	  if( h+z < zeps ) z = zeps - h	!make volume positive
@@ -454,8 +427,8 @@
 	    vk = ak * hl(l)
 	    ve = 3. * vk
 	    vole(l,ie) = vole(l,ie) + ve
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    do ii=1,nv
+	      k = kn(ii)
 	      bdebug = k == ks
 	      volk(l,k) = volk(l,k) + vk
 	      if( bdebug ) write(81,*) ie,ii,lmax,l,vk,ak,hl(l),h
@@ -674,6 +647,9 @@
 
 c transforms transports at elements to velocities at nodes
 
+	use basin, only : basin_vertex_average
+	use evgeom
+
         implicit none
 
 	logical bvel			!if true compute velocities
@@ -695,7 +671,8 @@ c transforms transports at elements to velocities at nodes
         real hl(nlvddi)                 !aux variable for real level thickness
 
         logical bsigma
-        integer ie,ii,k,l,lmax,nsigma,nlvaux
+        integer ie,ii,k,l,lmax,nsigma,nlvaux,nv
+	integer kn(3)
         real hmed,u,v,area,zeta
         real hsigma
 
@@ -712,10 +689,11 @@ c transforms transports at elements to velocities at nodes
 
         do ie=1,nel
 
-          area = area_elem(ie)
+	  call get_vertex_area_of_element(ie,nv,kn,area)
+
           lmax = ilhv(ie)
 	  if( bvel ) then
-	    zeta = sum(zenv(:,ie)) / 3.	!average of zeta on element
+	    zeta = basin_vertex_average(ie,zenv)
 	    call get_layer_thickness(lmax,nsigma,hsigma
      +				,zeta,hev(ie),hlv,hl)
 	  end if
@@ -724,8 +702,8 @@ c transforms transports at elements to velocities at nodes
             hmed = hl(l)
             u = utlnv(l,ie) / hmed
             v = vtlnv(l,ie) / hmed
-            do ii=1,3
-              k = nen3v(ii,ie)
+            do ii=1,nv
+              k = kn(ii)
               uprv(l,k) = uprv(l,k) + area * u
               vprv(l,k) = vprv(l,k) + area * v
               weight(l,k) = weight(l,k) + area

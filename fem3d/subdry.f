@@ -329,13 +329,14 @@ c
 c
 	include 'femtime.h'
 c local
-        integer ie,ii,i1,i2,isum,itot
+        integer ie,ii,i1,i2,isum,itot,n
         integer i3,i4,i5,i6,i7,i8
+	integer kn(3)
 c        real zm,zmed,d1,d2,det
         double precision zm,zmed,d1,d2,det	!$$dpisum
         real adt,axdt,dt,hzmin
 	real az,azt,azpar
-        real z(3),b(3),c(3),uo,vo,u,v,zz
+        real z(3),b(3),c(3),uo,vo,u,v,zz,area
 	real zn(3)
         integer nnn,itmin
 c save
@@ -367,7 +368,10 @@ c
 
         do ie=1,nel
         if( iseout(ie) ) then
-c
+
+	call get_vertex_area_of_element(ie,n,kn,b,c,area)
+	if( n == 2 ) stop 'error stop setuvd: not yet ready for 1d'
+
         uo=uov(ie)	!use barotropic velocities
         vo=vov(ie)
 	axdt=3.*dt    !$$lump $$azpar
@@ -376,20 +380,18 @@ c
 c z average, set b,c
 c
         zm=0.
-        do ii=1,3
+        do ii=1,n
 	  zn(ii) = zenv(ii,ie)
           zm=zm+zn(ii)
-          b(ii)=ev(3+ii,ie)
-          c(ii)=ev(6+ii,ie)
         end do
-        zmed=zm/3.
+        zmed=zm/n
 c
 c compute final z value for the nodes
 c
         itot=0
         isum=0
 c        zm=0.
-        do ii=1,3
+        do ii=1,n
           if(zmed+hm3v(ii,ie).lt.hzmin) then  !$$eps0
             z(ii)=hzmin-hm3v(ii,ie)
             itot=itot+1
@@ -434,12 +436,13 @@ c control, leave in any case
 c
         isum=-1
         zm=0.
-        do ii=1,3
+        do ii=1,n
           zm=zm+z(ii)
           if(z(ii)+hm3v(ii,ie).lt.hzmin-eps) goto 99
         end do
         isum=-2		!$$isum
-        if(abs(zm-3.*zmed).gt.eps) goto 99
+	zm = zm / n
+        if(abs(zm-zmed).gt.eps) goto 99
 c
 c now compute velocities
 c						!$$azpar
@@ -456,7 +459,7 @@ c with this velocity is there some node drying out ?
 c
 	isum=-1
         itot=0
-        do ii=1,3				!$$azpar
+        do ii=1,n				!$$azpar
           zz = axdt * ( b(ii)*(azt*uo+az*u) + c(ii)*(azt*vo+az*v) ) 
      +			+ zn(ii)
           if(zz+hm3v(ii,ie).lt.hzmin-eps) itot=itot+1 !$$eps
@@ -484,15 +487,16 @@ c now set u/v/z
 c
         itot=0
         zm=0.          !only for control
-        do ii=1,3				!$$azpar
+        do ii=1,n				!$$azpar
           zz = axdt * ( b(ii)*(azt*uo+az*u) + c(ii)*(azt*vo+az*v) ) 
      +			+ zn(ii)
           if(zz+hm3v(ii,ie).lt.hzmin-eps) itot=itot+1 !$$eps
           zenv(ii,ie)=zz
           zm=zm+zz
         end do
+	zm = zm / n
         isum=-3		!$$isum
-        if(abs(zm-3.*zmed).gt.eps) goto 99
+        if(abs(zm-zmed).gt.eps) goto 99
 c
         if(itot.gt.0) goto 97
 

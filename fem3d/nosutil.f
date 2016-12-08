@@ -361,6 +361,7 @@ c we could do better using information on node area and depth structure
 	  call get_layer_thickness(nlv,nsigma,hsigma,z,h,hlv,hl)
 	  do ii=1,3
 	    k = nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    bdebug = k == ks .and. nlv > 1
 	    lmax = ilhkv(k)
 	    do l=1,lmax

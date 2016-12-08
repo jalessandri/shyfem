@@ -199,7 +199,7 @@ c-----------------------------------------------------------------
 	end if
 
 	call init_sigma_info(nlv,hlv)
-	call level_k2e(nkn,nel,nen3v,ilhkv,ilhv)
+	call level_k2e(ilhkv,ilhv)
 	call compute_iztype(iztype)
 
 	allocate(ivars(nvar),var_ids(nvar))

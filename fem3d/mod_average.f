@@ -18,6 +18,11 @@
      +				 vertex_to_element_2d
         END INTERFACE
 
+        INTERFACE		 vertex_to_node
+        MODULE PROCEDURE 
+     +				 vertex_to_node_2d
+        END INTERFACE
+
         INTERFACE		 node_to_vertex
         MODULE PROCEDURE 
      +				 node_to_vertex_2d
@@ -284,7 +289,7 @@ c******************************************************************
 
         pure subroutine vertex_to_element_2d(el3v,elv)
 
-c transforms nodal values to element values
+c transforms vertex values to element values
 c
 c (2D version)
 
@@ -310,6 +315,60 @@ c end of routine
 c-----------------------------------------------------------
 
         end subroutine vertex_to_element_2d
+
+c******************************************************************
+
+        pure subroutine vertex_to_node_2d(el3v,nov)
+
+c transforms vertex values to nodal values
+c
+c (2D version)
+
+	use basin
+	use evgeom
+
+        implicit none
+
+        real, intent(in)  :: el3v(3,nel)  !array with vertex values
+        real, intent(out) :: nov(nkn)     !array with node values
+
+        integer ie,ii,k,n
+	integer kn(3)
+	real area,value
+	real aux(nkn)
+
+c-----------------------------------------------------------
+c initialize arrays
+c-----------------------------------------------------------
+
+        nov = 0.
+        aux = 0.
+
+c-----------------------------------------------------------
+c accumulate values
+c-----------------------------------------------------------
+
+        do ie=1,nel
+	  call get_vertex_area_of_element(ie,n,kn,area)
+          do ii=1,n
+            k = kn(ii)
+            value = el3v(ii,ie)
+            nov(k) = nov(k) + area*value
+            aux(k) = aux(k) + area
+	  end do
+        end do
+
+c-----------------------------------------------------------
+c compute final value
+c-----------------------------------------------------------
+
+	where ( aux > 0. ) nov = nov / aux
+
+c-----------------------------------------------------------
+c end of routine
+c-----------------------------------------------------------
+
+        end subroutine vertex_to_node_2d
 
 c******************************************************************
 

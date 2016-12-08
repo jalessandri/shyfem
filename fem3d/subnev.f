@@ -9,8 +9,6 @@ c subroutine set_ev				set up ev vector
 c subroutine check_ev				tests if ev is set up
 c subroutine cpp(x,y,rlambda,phi,rlambda0,phi0)	transforms (lon,lat) to cart
 c subroutine adjust_bc(v1,v2,v3)		adjusts b/c so that sum = 0
-c function area_elem(ie)			returns area of element ie
-c function aomega_elem(ie)			returns aomega of element ie
 c
 c revision log :
 c
@@ -297,6 +295,18 @@ c****************************************************************
 	c(1:n) = ev(6+1:6+n,ie)
 
 	end subroutine get_vertex_area_of_element_kbcd
+
+c****************************************************************
+
+	pure function get_diff_of_vertex(ii,ie)
+
+	double precision 		:: get_diff_of_vertex
+	integer, intent(in)		:: ii
+	integer, intent(in)		:: ie
+
+	get_diff_of_vertex = ev(13+ii,ie)
+
+	end function get_diff_of_vertex
 
 c****************************************************************
 
@@ -1284,51 +1294,7 @@ c***********************************************************
 c***********************************************************
 c***********************************************************
 
-	function area_elem(ie)
-
-c returns area of element ie
-
-	use evgeom
-
-	implicit none
-
-	real area_elem
-	integer ie
-
-	if( .not. init_ev ) then
-	  stop 'error stop area_elem: ev not set up'
-	end if
-
-	area_elem = 12. * ev(10,ie)
-
-	end
-
-c***********************************************************
-
-	function aomega_elem(ie)
-
-c returns aomega of element ie
-
-	use evgeom
-
-	implicit none
-
-	real aomega_elem
-	integer ie
-
-	if( .not. init_ev ) then
-	  stop 'error stop aomega_elem: ev not set up'
-	end if
-
-	aomega_elem = ev(10,ie)
-
-	end
-
-c***********************************************************
-
 	function weight_elem(ie)
-
-c returns weight for element ie - if ev is not setup, return 1
 
 	use evgeom
 
@@ -1337,11 +1303,7 @@ c returns weight for element ie - if ev is not setup, return 1
 	real weight_elem
 	integer ie
 
-	if( init_ev ) then
-	  weight_elem = ev(10,ie)
-	else
-	  weight_elem = 1.
-	end if
+	weight_elem = get_total_area_of_element(ie)
 
 	end
 

@@ -75,7 +75,7 @@ c local
 	do i=1,nl
 	  ie=elems(i)
 	  if(ie.le.0) stop 'error stop connod: internal error'
-	  ii = ithis(k,ie)
+	  ii = iikthis(k,ie)
 	  area = get_finvol_area_of_element(ie)
 	  depth=hm3v(ii,ie)+zenv(ii,ie)-dz		!$$lumpc
 	  vol = area * depth
@@ -88,7 +88,7 @@ c local
 
 	do i=1,nl
 	  ie=elems(i)
-	  ii = ithis(k,ie)
+	  ii = iikthis(k,ie)
 	  coe(ii,ie) = cnew / voltot
 	end do
 
@@ -99,7 +99,7 @@ c	write(6,*) 'ggu1: ',massold,massnew,massnew-massold
 	massnew = 0.
 	do i=1,nl
 	  ie=elems(i)
-	  ii = ithis(k,ie)
+	  ii = iikthis(k,ie)
 	  area = get_finvol_area_of_element(ie)
 	  depth=hm3v(ii,ie)+zenv(ii,ie)		!$$lumpc
 	  vol = area * depth

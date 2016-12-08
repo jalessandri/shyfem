@@ -1426,7 +1426,7 @@ c------------------------------------------------------------
 c flag nodes that are inside lagoon (v1v(k)=1)
 c------------------------------------------------------------
 
-	call create_node_indicator((iarv /= 0),v1v)
+	call create_node_indicator((iarv /= iaout),v1v)
 
 c------------------------------------------------------------
 c reset concentrations
@@ -1688,16 +1688,14 @@ c*****************************************************************
 
         implicit none
 
-        include 'param.h'
-
 	include 'femtime.h'
-
 
 	real, save, allocatable :: conzs(:)
 	real, save, allocatable :: conza(:)
 	real, save, allocatable :: conzh(:)
 
         integer ie,ii,k,lmax,l,ia
+	integer iaout
 	integer iunit
         logical bnoret
         real vol,conz,perc,wsink,dt,sed,h,r,cnew,rhos
@@ -1723,6 +1721,7 @@ c------------------------------------------------------------
 	wsink = 1.e-5
 	wsink = 5.e-5
 	rhos = 2500.
+	iaout = -1
 	call get_timestep(dt)
 	call getinfo(iunit)
 
@@ -1787,7 +1786,7 @@ c------------------------------------------------------------
 c total mass
 c------------------------------------------------------------
 
-	call create_node_indicator((iarv /= 0),v1v)
+	call create_node_indicator((iarv /= iaout),v1v)
 
         mass = 0.
         masss = 0.

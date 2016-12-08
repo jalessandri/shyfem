@@ -298,15 +298,16 @@ c estimates maximum value for nlv
 
 	integer nlv_est		!nlv_read on entry, estimate on return
 
-	integer ie,ii
+	integer ie,ii,n
 	integer nsigma,nreg
 	real hsigma,hmax,dzreg
 
 	real getpar
 
-	hmax = 0.
+	hmax = hm3v(1,1)
 	do ie=1,nel
-	  do ii=1,3
+	  n = basin_get_vertex_of_element(ie)
+	  do ii=1,n
 	    hmax = max(hmax,hm3v(ii,ie))
 	  end do
 	end do
@@ -358,7 +359,7 @@ c sigma and zeta levels and hsigma	hybrid levels
 
 c local
 	logical bsigma,bhybrid,bzeta
-	integer l,ie,ii,nsigma,second
+	integer l,ie,ii,nsigma,second,n
 	real dzreg,hl,fact,hsigma
 	real hmax,hbot,htop
 
@@ -370,9 +371,10 @@ c--------------------------------------------------------------
 c get maximum depth
 c--------------------------------------------------------------
 
-	hmax = 0.
+	hmax = hm3v(1,1)
 	do ie=1,nel
-	  do ii=1,3
+	  n = basin_get_vertex_of_element(ie)
+	  do ii=1,n
 	    hmax = max(hmax,hm3v(ii,ie))
 	  end do
 	end do
@@ -662,11 +664,7 @@ c local
 	bsigma = nsigma .gt. 0
 
 	do ie=1,nel
-	  hm = 0.
-	  do ii=1,3
-	    hm = hm + hm3v(ii,ie)
-	  end do
-	  hm = hm / 3.
+	  hm = basin_vertex_average_2d(ie,hm3v)
 	  hev(ie) = hm
 	  hmax = max(hmax,hm)
 	end do
@@ -716,7 +714,8 @@ c set ilhkv array - only needs ilhv
 
 	implicit none
 
-	integer ie,ii,k,l
+	integer ie,ii,k,l,n
+	integer kn(3)
 
 	do k=1,nkn
 	  ilhkv(k)=0
@@ -724,18 +723,12 @@ c set ilhkv array - only needs ilhv
 
 	do ie=1,nel
 	  l=ilhv(ie)
-	  do ii=1,3
-	    k=nen3v(ii,ie)
-	    if( k == 0 ) cycle
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k=kn(ii)
 	    if(l.gt.ilhkv(k)) ilhkv(k)=l
 	  end do
 	end do
-
-	!do k=1,nkn
-	!  if( ilhkv(k) .eq. 2 ) then
-	!    write(6,*) '2 layer node: ',k,ilhkv(k)
-	!  end if
-	!end do
 
 	end
 
@@ -750,8 +743,9 @@ c set minimum number of levels for node and element
 
 	implicit none
 
-	integer ie,ii,k,l
+	integer ie,ii,k,l,n
 	integer lmin,lmax
+	integer kn(3)
 
 	do k=1,nkn
 	  ilmkv(k) = 99999
@@ -759,9 +753,9 @@ c set minimum number of levels for node and element
 
 	do ie=1,nel
 	  l=ilhv(ie)
-	  do ii=1,3
-	    k=nen3v(ii,ie)
-	    if( k == 0 ) cycle
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k=kn(ii)
 	    if(l.lt.ilmkv(k)) ilmkv(k)=l
 	  end do
 	end do
@@ -778,9 +772,9 @@ c set minimum number of levels for node and element
 	do ie=1,nel
 	  lmin = 99999
 	  lmax = ilhv(ie)
-	  do ii=1,3
-	    k=nen3v(ii,ie)
-	    if( k == 0 ) cycle
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k=kn(ii)
 	    if(lmin.gt.ilmkv(k)) lmin = ilmkv(k)
 	  end do
 	  ilmv(ie) = lmin
@@ -802,28 +796,30 @@ c checks arrays ilhv and ilhkv
 
 	logical bsigma,bspure
 	integer nsigma
-	integer ie,ii,k,lmax,lk
+	integer ie,ii,k,lmax,lk,n
+	integer kn(3)
 	real hmax,hsigma
 
 	call get_sigma(nsigma,hsigma)
 	bsigma = nsigma .gt. 0
 
-	hmax = 0.
+	hmax = hm3v(1,1)
 	do ie=1,nel
 	  lmax = ilhv(ie)
-	  do ii=1,3
+	  if( lmax .le. 0 ) goto 99
+	  n = basin_get_vertex_of_element(ie)
+	  do ii=1,n
 	    hmax = max(hmax,hm3v(ii,ie))
 	  end do
-	  if( lmax .le. 0 ) goto 99
 	end do
 
 	bspure = bsigma .and. hmax .le. hsigma	!pure sigma coordinates
 
 	do ie=1,nel
 	  lmax=ilhv(ie)
-	  do ii=1,3
-	    k=nen3v(ii,ie)
-	    if( k == 0 ) cycle
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k=kn(ii)
 	    lk = ilhkv(k)
 	    if( lk .le. 0 ) goto 98
 	    if( lk .lt. lmax ) goto 98
@@ -933,12 +929,7 @@ c------------------------------------------------------------
 
 	do ie=1,nel
 
-	  !hm = 0.
-	  !do ii=1,3
-	  !  hm = hm + hm3v(ii,ie)
-	  !end do
-	  !hm = hm / 3.
-	  hm = sum(hm3v(:,ie))/3.
+	  hm = basin_vertex_average_2d(ie,hm3v)
 
 	  l = ilhv(ie)
 	  binsigma = l .le. nsigma

@@ -774,7 +774,7 @@ c common
 	include 'femtime.h'
 c local
 	logical bdebug,bdebug1,debug,btvdv
-	integer k,ie,ii,l,iii,ll,ibase
+	integer k,ie,ii,l,iii,ll,ibase,nv
 	integer lstart
 	integer ilevel
 	integer itot,isum	!$$flux
@@ -789,7 +789,8 @@ c local
 	double precision us,vs
 	double precision az,azt
 	double precision aa,aat,ad,adt
-	double precision aj,rk3,rv,aj4,aj12
+	double precision area
+	double precision rk3,rv
 	double precision hmed,hmbot,hmtop
 	double precision hmotop,hmobot,hmntop,hmnbot
 	double precision rvptop,rvpbot
@@ -953,16 +954,8 @@ c----------------------------------------------------------------
 
         do ie=1,nel
 
-	do ii=1,3
-          k=nen3v(ii,ie)
-	  kn(ii)=k
-	  b(ii)=ev(ii+3,ie)
-	  c(ii)=ev(ii+6,ie)
-	end do
+	call get_vertex_area_of_element(ie,nv,kn,b,c,area)
 
-	aj=ev(10,ie)    !area of triangle / 12
-	aj4=4.*aj
-	aj12=12.*aj
         ilevel=ilhv(ie)
 
 c	----------------------------------------------------------------
@@ -974,7 +967,7 @@ c	----------------------------------------------------------------
           !haver(l) = 0.5 * ( hdeov(l,ie) + hdenv(l,ie) )
           haver(l) = rso*hdenv(l,ie) + rsot*hdeov(l,ie)
 	  present(l) = 1.
-	  do ii=1,3
+	  do ii=1,nv
 	    k=kn(ii)
 	    hn = hdknv(l,k)		! there are never more layers in ie
 	    ho = hdkov(l,k)		! ... than in k
@@ -1004,9 +997,7 @@ c	we set wl(ilevel,ii) to 0 because we are on the bottom
 c	and there should be no contribution from this element
 c	to the vertical velocity
 
-	do ii=1,3
-	  wl(ilevel,ii) = 0.
-	end do
+	wl(ilevel,:) = 0.
 
 c	----------------------------------------------------------------
 c	compute vertical fluxes (w/o vertical TVD scheme)
@@ -1023,13 +1014,14 @@ c----------------------------------------------------------------
         us=az*utlnv(l,ie)+azt*utlov(l,ie)             !$$azpar
         vs=az*vtlnv(l,ie)+azt*vtlov(l,ie)
 
-        rk3 = 3. * rkpar * difhv(l,ie)
+        !rk3 = 3. * rkpar * difhv(l,ie)
+        rk3 = rkpar * difhv(l,ie)
 
 	cbm=0.
 	ccm=0.
 	itot=0
 	isum=0
-	do ii=1,3
+	do ii=1,nv
 	  k=kn(ii)
 	  f(ii)=us*b(ii)+vs*c(ii)	!$$azpar
 	  if(f(ii).lt.0.) then	!flux out of node
@@ -1054,7 +1046,7 @@ c	  contributions from horizontal diffusion
 c	  ----------------------------------------------------------------
 
           waux = 0.
-          do iii=1,3
+          do iii=1,nv
             waux = waux + wdifhv(iii,ii,ie) * cl(l,iii)
           end do
           wdiff(ii) = waux
@@ -1154,21 +1146,16 @@ c		for flux use conz. of the other two nodes and
 c		minus the sum of these nodes for the flux of this node
 
 	if(itot.eq.1) then	!$$flux
-	  fl(1)=f(1)*cl(l,isum)
-	  fl(2)=f(2)*cl(l,isum)
-	  fl(3)=f(3)*cl(l,isum)
+	  fl(:)=f(:)*cl(l,isum)
 	else if(itot.eq.2) then
+	  if( nv == 2 ) stop 'error stop conz3d_orig: itot and nv'
 	  isum=6-isum
-	  fl(1)=f(1)*cl(l,1)
-	  fl(2)=f(2)*cl(l,2)
-	  fl(3)=f(3)*cl(l,3)
+	  fl(:)=f(:)*cl(l,:)
 	  fl(isum) = 0.
 	  fl(isum) = -(fl(1)+fl(2)+fl(3))
 	  isum=6-isum		!reset to original value
 	else			!exception	$$itot0
-	  fl(1)=0.
-	  fl(2)=0.
-	  fl(3)=0.
+	  fl(:)=0.
 	end if
 
 c	----------------------------------------------------------------
@@ -1177,9 +1164,8 @@ c	----------------------------------------------------------------
 
         if( btvd ) then
 	  iext = 0
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    if( k == 0 ) cycle
+	  do ii=1,nv
+	    k = kn(ii)
 	    if( is_external_boundary(k) ) iext = iext + 1
 	  end do
 
@@ -1196,7 +1182,7 @@ c	----------------------------------------------------------------
 c	contributions from nudging
 c	----------------------------------------------------------------
 
-	do ii=1,3
+	do ii=1,nv
 	  fnudge(ii) = robs * rtau(l,ii) * ( cob(l,ii) - cl(l,ii) )
 	end do
 
@@ -1204,14 +1190,14 @@ c	----------------------------------------------------------------
 c	sum explicit contributions
 c	----------------------------------------------------------------
 
-	do ii=1,3
+	do ii=1,nv
           hmed = haver(l)                    !new ggu   !HACK
-	  cexpl = aj4 * ( hold(l,ii)*cl(l,ii)
+	  cexpl = area * ( hold(l,ii)*cl(l,ii)
      +				+ dt *  ( 
      +					    hold(l,ii)*fnudge(ii)
-     +					  + 3.*fl(ii) 
+     +					  + nv*fl(ii) 
      +					  - fw(ii)
-     +					  - rk3*hmed*wdiff(ii)
+     +					  - nv*rk3*hmed*wdiff(ii)
      +					  - fd(ii)
      +					)
      +		         )
@@ -1237,28 +1223,26 @@ c
 c clp -> bottom
 c clm -> top
 
-	do ii=1,3
-	  clm(1,ii) = 0.
-	  clp(ilevel,ii) = 0.
-	end do
+	clm(1,:) = 0.
+	clp(ilevel,:) = 0.
 
         !do l=1,ilevel
 	!  do ii=1,3
 	!    k=kn(ii)
 	!    cn(l,k)    = cn(l,k)    +            cle(l,ii)
-	!    clow(l,k)  = clow(l,k)  + aj4 * dt * clm(l,ii)
-	!    chigh(l,k) = chigh(l,k) + aj4 * dt * clp(l,ii)
-	!    cdiag(l,k) = cdiag(l,k) + aj4 * dt * clc(l,ii)
-	!    cdiag(l,k) = cdiag(l,k) + aj4 * hnew(l,ii)
+	!    clow(l,k)  = clow(l,k)  + area * dt * clm(l,ii)
+	!    chigh(l,k) = chigh(l,k) + area * dt * clp(l,ii)
+	!    cdiag(l,k) = cdiag(l,k) + area * dt * clc(l,ii)
+	!    cdiag(l,k) = cdiag(l,k) + area * hnew(l,ii)
 	!  end do
 	!end do
 
-	do ii=1,3
+	do ii=1,nv
           do l=1,ilevel
 	    ccle(l,ii,ie) =            cle(l,ii)
-	    cclm(l,ii,ie) = aj4 * dt * clm(l,ii)
-	    cclp(l,ii,ie) = aj4 * dt * clp(l,ii)
-	    cclc(l,ii,ie) = aj4 * ( dt * clc(l,ii) + hnew(l,ii) )
+	    cclm(l,ii,ie) = area * dt * clm(l,ii)
+	    cclp(l,ii,ie) = area * dt * clp(l,ii)
+	    cclc(l,ii,ie) = area * ( dt * clc(l,ii) + hnew(l,ii) )
 	  end do
           do l=ilevel+1,nlv
 	    ccle(l,ii,ie) = 0.
@@ -1294,8 +1278,8 @@ c----------------------------------------------------------------
 	  ilevel = ilhkv(k)
 	  do i=1,n
 	    ie = elems(i)
-	    ii = ithis(k,ie)
-	    if( ii == 0 .or. nen3v(ii,ie) /= k ) then
+	    ii = iikthis(k,ie)
+	    if( ii == 0 .or. .not. link_is_k(ii,ie,k) ) then
 	      stop 'error stop: cannot find ii...'
 	    end if
 	    do l=1,ilevel
@@ -1496,7 +1480,7 @@ c local
 	double precision us,vs
 	double precision az,azt
 	double precision aa,aat,ad,adt
-	double precision area,areat,rk3,rv,aj4
+	double precision area,areat,rk3,rv
 	double precision hmed,hmbot,hmtop
 	double precision rvptop,rvpbot
 	double precision dt,w,aux
@@ -1642,7 +1626,7 @@ c	-----------------------------------------------------------------
 	  hdv(l) = 0.		!layer thickness
           haver(l) = 0.
 	  present(l) = 0.	!1. if layer is present
-	  do ii=1,nv
+	  do ii=1,3
 	    hnew(l,ii) = 0.	!as hreal but with zeta_new
 	    hold(l,ii) = 0.	!as hreal but with zeta_old
 	    !cl(l,ii) = 0.	!concentration in layer
@@ -1817,7 +1801,7 @@ c cdiag is diagonal of tri-diagonal system
 c chigh is high (right) part of tri-diagonal system
 c clow is low (left) part of tri-diagonal system
 
-	do ii=1,nv
+	do ii=1,3
 	  clm(1,ii) = 0.
 	  clp(ilevel,ii) = 0.
 	end do
@@ -2067,7 +2051,8 @@ c checks min/max property
 
 
 	logical bwrite,bstop
-	integer k,ie,l,ii,lmax,ierr
+	integer k,ie,l,ii,lmax,ierr,n
+	integer kn(3)
 	integer levdbg
 	real amin,amax,c,qflux,dmax
 	real drmax,diff
@@ -2122,18 +2107,18 @@ c horizontal contribution
 c---------------------------------------------------------------
 
 	do ie=1,nel
-	  if( basin_element_is_1d(ie) ) cycle
+	  call basin_get_vertex_nodes(ie,n,kn)
 	  lmax = ilhv(ie)
 	  do l=1,lmax
 	    amin = +1.e+30
 	    amax = -1.e+30
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    do ii=1,n
+	      k = kn(ii)
 	      amin = min(amin,cov(l,k))
 	      amax = max(amax,cov(l,k))
 	    end do
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    do ii=1,n
+	      k = kn(ii)
 	      rmin(l,k) = min(rmin(l,k),amin)
 	      rmax(l,k) = max(rmax(l,k),amax)
 	    end do

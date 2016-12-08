@@ -651,19 +651,8 @@ c raises water level of lagoon
 
 	real dz		!water level rise per time step [m]
 
-	include 'param.h'
-
-        integer ie,ii,k
-
-        do k=1,nkn
-          znv(k) = znv(k) + dz
-        end do
-
-        do ie=1,nel
-          do ii=1,3
-            zenv(ii,ie) = zenv(ii,ie) + dz
-          end do
-        end do
+        znv = znv + dz
+        zenv = zenv + dz
 
 	end
 

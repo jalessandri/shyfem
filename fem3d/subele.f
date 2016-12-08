@@ -83,18 +83,14 @@ c computes total (average) depth of element ie
 
 	implicit none
 
-	include 'param.h'
-
 	integer ie	!number of element
 	integer mode	!-1: old zeta   0: no zeta   1: new zeta
 	real depele	!depth (return)
 
-
 	integer ii,n
 	real hmed
 
-	!call elebase(ie,n,ibase)
-	n = 3
+	n = basin_get_vertex_of_element(ie)
 
 	hmed = 0.
 
@@ -191,6 +187,7 @@ c****************************************************************
 c computes (average) zeta of element ie
 
 	use mod_hydro
+	use basin
 
 	implicit none
 
@@ -201,8 +198,7 @@ c computes (average) zeta of element ie
 	integer ii,n
 	real hmed
 
-	!call elebase(ie,n,ibase)
-	n = 3
+	n = basin_get_vertex_of_element(ie)
 
 	hmed = 0.
 
@@ -288,8 +284,9 @@ c computes depth of vertices in element ie
 
 	integer ii
 
-	!call elebase(ie,n,ibase)
-	n = 3
+	n = basin_get_vertex_of_element(ie)
+
+	h = 0.
 
 	if( mode .lt. 0 ) then
 	  do ii=1,n
@@ -323,11 +320,7 @@ c computes total depth in vertex ii of element ie
 	integer ii	!number of vertex
 	integer mode	!-1: old zeta   0: no zeta   1: new zeta
 
-	integer n
 	real h
-
-	!call elebase(ie,n,ibase)
-	n = 3
 
 	if( mode .lt. 0 ) then
 	    h = hm3v(ii,ie) + zeov(ii,ie)

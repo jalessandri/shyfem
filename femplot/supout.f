@@ -1193,11 +1193,10 @@ c******************************************************
 c computes max level at nodes from elements
 
 	use levels
-	use basin
 
 	implicit none
 
-	call level_e2k(nkn,nel,nen3v,ilhv,ilhkv)
+	call level_e2k(ilhv,ilhkv)
 
 	end
 
@@ -1208,11 +1207,10 @@ c******************************************************
 c computes level at elems from nodes (not exact)
 
 	use levels
-	use basin
 
 	implicit none
 
-	call level_k2e(nkn,nel,nen3v,ilhkv,ilhv)
+	call level_k2e(ilhkv,ilhv)
 
 	end
 

@@ -157,7 +157,8 @@ c stability is computed for dt == 1
 	real rindex
 	real dstab(nlvdi,nel)
 
-	integer ie,ii,iei,l,lmax,k
+	integer ie,ii,iei,l,lmax,k,n
+	integer kn(3)
 	real u,v,ui,vi
 	real anu,ax,ay
 	real area,areai
@@ -172,25 +173,26 @@ c stability is computed for dt == 1
 	do ie=1,nel
 
 	  lmax = ilhv(ie)
-	  area = 12. * ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
+	  area = n * area
 
 	  do l=1,lmax
 
 	    a = 0.
 	    r = 0.
-	    do ii=1,3
+	    do ii=1,n
               iei = ieltv(ii,ie)
-	      k = nen3v(ii,ie)
+	      k = kn(ii)
               if( iei .le. 0 ) iei = ie
 
-              areai = 12. * ev(10,iei)
+              areai = get_total_area_of_element(iei)
 
 	      r = r + rdistv(k)
 	      anu = ahpar * difhv(l,ie)
               ai = 2. * anu / ( area + areai )
               a = a + ai
 	    end do
-	    r = r/3.
+	    r = r/n
 
 	    a = a * r
 	    amax = max(amax,a)
@@ -218,7 +220,7 @@ c******************************************************************
 
 	implicit none
 
-	integer ie,ii,iei,l,lmax
+	integer ie,ii,iei,l,lmax,n
 	integer noslip
 	real u,v,ui,vi
 	real anu,ahpar,ax,ay
@@ -242,20 +244,21 @@ c******************************************************************
 	do ie=1,nel
 
 	  lmax = ilhv(ie)
-	  area = 12. * ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,area)
+	  area = n * area
 
 	  do l=1,lmax
 	    u  = utlov(l,ie)
 	    v  = vtlov(l,ie)
 
 	    a = 0.
-	    do ii=1,3
+	    do ii=1,n
               iei = ieltv(ii,ie)
               afact = 1.
               if( bnoslip .and. iei .eq. 0 ) afact = -1.
               if( iei .le. 0 ) iei = ie
 
-              areai = 12. * ev(10,iei)
+              areai = get_total_area_of_element(iei)
 
 	      anu = ahpar * difhv(l,ie)
               ai = 2. * anu / ( area + areai )
@@ -296,7 +299,9 @@ c sets arrays momentx/yv
 
         implicit none
 
-        integer ii,ie,k,l,lmax
+        integer ii,ie,k,l,lmax,n
+	integer kn(3)
+	real bb(3),cc(3)
         real b,c
         real ut,vt
         real uc,vc
@@ -304,7 +309,7 @@ c sets arrays momentx/yv
         real um,vm
         real f,h
 	real xadv,yadv
-	real area,vol
+	real area
 
 	real saux(nlvdi,nkn)
 
@@ -326,10 +331,11 @@ c---------------------------------------------------------------
             h = hdeov(l,ie)
 	    ut = utlov(l,ie)
 	    vt = vtlov(l,ie)
-            do ii=1,3
-                k = nen3v(ii,ie)
-                b = ev(3+ii,ie)
-                c = ev(6+ii,ie)
+	    call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
+            do ii=1,n
+                k = kn(ii)
+                b = bb(ii)
+                c = cc(ii)
                 f = ut * b + vt * c	! f>0 => flux into node
                 if( f .gt. 0. ) then
 		  saux(l,k) = saux(l,k) + f
@@ -385,7 +391,9 @@ c******************************************************************
 	real wtop,wbot
 
         integer ihwadv  	! vertical advection for momentum
-        integer ii,ie,k,l,lmax
+        integer ii,ie,k,l,lmax,n
+	integer kn(3)
+	real bb(3),cc(3)
         real b,c
         real ut,vt
         real uc,vc
@@ -424,7 +432,9 @@ c	    ---------------------------------------------------------------
 c	    horizontal advection
 c	    ---------------------------------------------------------------
 
-	    area = 12. * ev(10,ie)
+	    call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
+	    area = n * area
+
             h = hdeov(l,ie)
 	    vol = area * h
   	    ut = utlov(l,ie)
@@ -435,11 +445,10 @@ c	    ---------------------------------------------------------------
 	    xadv = 0.
 	    yadv = 0.
 	    wbot = 0.
-            do ii=1,3
-                k = nen3v(ii,ie)
-		if( k == 0 ) cycle
-                b = ev(3+ii,ie)
-                c = ev(6+ii,ie)
+            do ii=1,n
+                k = kn(ii)
+                b = bb(ii)
+                c = cc(ii)
 		wbot = wbot + wlov(l,k)
                 up = momentxv(l,k) / h		!NEW
                 vp = momentyv(l,k) / h
@@ -458,7 +467,7 @@ c	    vertical advection
 c	    ---------------------------------------------------------------
 
 	    if( ihwadv > 0 ) then	!compute vertical momentum advection
-	      wbot = wbot / 3.
+	      wbot = wbot / n
 	      if( l .eq. lmax ) wbot = 0.
 
               if(ihwadv == 1) then	!use upwind scheme
@@ -546,17 +555,20 @@ c stability is computed for dt == 1
 	real rindex		   !stability index (return)
 	real astab(nlvdi,nel)      !stability matrix (return)
 
-	integer ie,l,ii,k,lmax,iweg
-	real cc,cmax
+	integer ie,l,ii,k,lmax,iweg,n
+	integer kn(3)
+	real bb(3),cc(3)
+	real ccc,cmax
 	real ut,vt
 	real area,h,vol
 	real b,c,f,ftot,r
 
 	cmax = 0.
-	!call compute_stability_stats(-1,cc)
+	!call compute_stability_stats(-1,ccc)
 
 	do ie=1,nel
-	  area = 12. * ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
+	  area = n * area
 	  lmax = ilhv(ie)
 	  iweg = iwegv(ie)
 	  do l=1,lmax
@@ -569,41 +581,40 @@ c stability is computed for dt == 1
 
 	    ftot = 0.
 	    r = 0.
-            do ii=1,3
-                k = nen3v(ii,ie)
-		if( k == 0 ) cycle
-                b = ev(3+ii,ie)
-                c = ev(6+ii,ie)
+            do ii=1,n
+                k = kn(ii)
+                b = bb(ii)
+                c = cc(ii)
 		r = r + rdistv(k)
                 f = ut * b + vt * c
                 if( f .lt. 0. ) ftot = ftot - f
             end do
-	    r = r/3.
+	    r = r/n
 
-	    cc = rlin*r*area*ftot/vol
-	    if( iweg .gt. 0 ) cc = 0.	! dry element
-	    astab(l,ie) = cc
-	    cmax = max(cmax,cc)
-	    !call compute_stability_stats(0,cc)
+	    ccc = rlin*r*area*ftot/vol
+	    if( iweg .gt. 0 ) ccc = 0.	! dry element
+	    astab(l,ie) = ccc
+	    cmax = max(cmax,ccc)
+	    !call compute_stability_stats(0,ccc)
 
 	  end do
 	end do
 
 	rindex = cmax
-	!call compute_stability_stats(1,cc)
+	!call compute_stability_stats(1,ccc)
 
 	end
 
 c******************************************************************
 
-	subroutine compute_stability_stats(what,cc)
+	subroutine compute_stability_stats(what,ccc)
 
 c computes histogram of stability of elements
 
 	implicit none
 
 	integer what
-	real cc
+	real ccc
 
 	integer ndim,dbin
 	parameter( ndim = 10 , dbin = 10 )
@@ -619,8 +630,8 @@ c computes histogram of stability of elements
 	    bin(i) = 0
 	  end do
 	else if( what .eq. 0 ) then	!accumulate
-	  if( cc .gt. eps ) then
-	    idt = 1. / cc
+	  if( ccc .gt. eps ) then
+	    idt = 1. / ccc
 	  else
 	    idt = 9999999
 	  end if
@@ -680,10 +691,11 @@ c******************************************************************
         implicit none
          
 	include 'pkonst.h'
-        !integer itanf,itend,idt,nits,niter,it
-        !real k,l,ie,ii				!BUG
-        integer k,l,ie,ii			!BUG
+        integer k,l,ie,ii,n
+	integer kn(3)
         real dt
+	real bb(3),cc(3)
+	real area
         real rrho0
         real salref,temref,sstrat,tstrat
         real hlayer
@@ -708,18 +720,18 @@ c******************************************************************
             presbcx = 0.
             presbcy = 0.
             lmax=ilhv(ie)
+	    call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
             !print*,lmax,' lmax'
             do l=1,lmax            
                 hlayer = 0.5 * hdeov(l,ie)
                 
 		br = 0.
 		cr = 0.                 
-                do ii=1,3                 
-                        k = nen3v(ii,ie)
+                do ii=1,n
+                        k = kn(ii)
                         rhop = rhov(l,k) ! rho^prime for each node of element 
-                        !print*,'rhov ', l,k,rhov(l,k)
-                        b = ev(3+ii,ie)!gradient in x della funz di forma
-                        c = ev(6+ii,ie)!gradient in y della funz di forma
+                        b = bb(ii)
+                        c = cc(ii)
                         br = br + (b*rhop) 
                         cr = cr + (c*rhop)
                 end do
@@ -769,11 +781,13 @@ c cannot use this for sigma levels
 	include 'pkonst.h'
 
 	logical bsigma
-        integer k,l,ie,ii,lmax,lmin
+        integer k,l,ie,ii,lmax,lmin,n
+	integer kn(3)
         double precision hlayer,hhi
         double precision xbcl,ybcl
         double precision raux,rhop,presbcx,presbcy
         double precision b,c,br,cr
+        double precision bb(3),cc(3),area
 
         raux=grav/rowass
 	call get_bsigma(bsigma)
@@ -787,6 +801,7 @@ c cannot use this for sigma levels
           presbcy = 0.
 	  lmin = ilmv(ie)
           lmax = ilhv(ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
           do l=1,lmax
             hhi = hdeov(l,ie)
             hhi = hldv(l)
@@ -794,11 +809,11 @@ c cannot use this for sigma levels
                 
 	    br = 0.
 	    cr = 0.                 
-            do ii=1,3                 
-              k = nen3v(ii,ie)
+            do ii=1,n
+              k = kn(ii)
               rhop = rhov(l,k)		!rho^prime for each node of element 
-              b = ev(3+ii,ie)		!gradient in x
-              c = ev(6+ii,ie)		!gradient in y
+              b = bb(ii)
+              c = cc(ii)
               br = br + b * rhop
               cr = cr + c * rhop
             end do
@@ -835,11 +850,13 @@ c do not use this routine !
          
 	include 'pkonst.h'
 
-        integer k,l,ie,ii,lmax,lmin
+        integer k,l,ie,ii,lmax,lmin,n
+	integer kn(3)
         double precision hlayer,hhi
         double precision xbcl,ybcl
         double precision raux,rhop,presbcx,presbcy
         double precision b,c,br,cr
+        double precision bb(3),cc(3),area
 
 	double precision px(0:nlvdi)
 	double precision py(0:nlvdi)
@@ -853,6 +870,7 @@ c do not use this routine !
           presbcy = 0.
 	  lmin = ilmv(ie)
           lmax = ilhv(ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
 
 	  px(0) = presbcx
 	  py(0) = presbcy
@@ -864,11 +882,11 @@ c do not use this routine !
                 
 	    br = 0.
 	    cr = 0.                 
-            do ii=1,3                 
-              k = nen3v(ii,ie)
+            do ii=1,n
+              k = kn(ii)
               rhop = rhov(l,k)		!rho^prime for each node of element 
-              b = ev(3+ii,ie)		!gradient in x
-              c = ev(6+ii,ie)		!gradient in y
+              b = bb(ii)
+              c = cc(ii)
               br = br + b * rhop
               cr = cr + c * rhop
             end do
@@ -930,7 +948,8 @@ c---------- DEB SIG
 c---------- DEB SIG
 
 	logical bsigma,bsigadjust
-        integer k,l,ie,ii,lmax,lmin,nsigma
+        integer k,l,ie,ii,lmax,lmin,nsigma,n
+	integer kn(3)
 	real hsigma,hdep
         double precision hlayer,hint,hhk,hh,hhup,htint
 	double precision dzdx,dzdy,zk
@@ -939,6 +958,7 @@ c---------- DEB SIG
         double precision b,c,br,cr,brup,crup,brint,crint
 	double precision rhoup,psigma
 	double precision b3,c3
+        double precision bb(3),cc(3),area
 
 	bsigadjust = .false.		!regular sigma coordinates
 	bsigadjust = .true.		!interpolate on horizontal surfaces
@@ -972,6 +992,7 @@ c---------- DEB SIG
           presbcy = 0.
 	  lmin = ilmv(ie)
           lmax = ilhv(ie)
+	  call get_vertex_area_of_element(ie,n,kn,bb,cc,area)
 	  brup=0.
 	  crup=0.
 	  hhup=0.
@@ -990,17 +1011,17 @@ c---------- DEB SIG
 	    if( bsigma .and. bsigadjust ) then	!-------------- DEB SIG
 	      hele = 0.
 	      helei = 0.
-	      do ii=1,3
-                k = nen3v(ii,ie)
+	      do ii=1,n
+                k = kn(ii)
 	        hele=hele+hkko(l,k)+hkko(l-1,k)	!depth of mid layer in element
 	        helei=helei+hkko(l-1,k)		!depth of interface in element
 	      end do
 
-	      hele=hele/6.			!depth of mid layer l
-	      helei=helei/3.			!depth of interface l-1
+	      hele=hele/(2*n)			!depth of mid layer l
+	      helei=helei/n			!depth of interface l-1
 
-	      do ii=1,3
-                k = nen3v(ii,ie)   
+	      do ii=1,n
+                k = kn(ii)
 		lkmax = ilhkv(k)
 	        if(helei.lt.hkko(l-1,k))then	!look upwards
 		  do ll=l-1,1,-1
@@ -1047,15 +1068,15 @@ c---------- DEB SIG
 	    dzdy = 0.
 	    psigma = 0.
 
-            do ii=1,3
-	      k = nen3v(ii,ie)
+            do ii=1,n
+	      k = kn(ii)
 	      if( k == 0 ) cycle
 	      rhop = rhov(l,k)		!rho^prime for each node of element
 	      rhoup = rhop
 	      if( l.gt.1) rhoup = rhov(l-1,k)
 	      lkmax = ilhkv(k)
-              b = ev(3+ii,ie)		!gradient in x
-              c = ev(6+ii,ie)		!gradient in y
+              b = bb(ii)
+              c = cc(ii)
 
 	      if( l .eq. nsigma ) then	!last sigma layer
 	        brl = brl + b * rhop
@@ -1106,8 +1127,8 @@ c---------- DEB SIG
 	        brint = brup
 	        crint = crup
 	      elseif(nb.eq.1)then
-	        b3 = ev(3+nn,ie)
-	        c3 = ev(6+nn,ie)
+	        b3 = bb(nn)
+	        c3 = cc(nn)
 	        aux=1./(c3*c3+b3*b3)
 	        bn = aux*(brup*b3+crup*c3)*b3
 	        cn = aux*(brup*b3+crup*c3)*c3
@@ -1136,7 +1157,7 @@ c---------- DEB SIG
 	      crup=crl
 	    end if
             hhup=hh
-	    psigma = psigma / 3.
+	    psigma = psigma / n
 
             presbcx = presbcx + hint * ( brint - dzdx * psigma )
 	    presbcy = presbcy + hint * ( crint - dzdy * psigma )

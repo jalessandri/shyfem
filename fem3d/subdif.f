@@ -109,6 +109,7 @@ c weights in main diagonal are positive => weights out of diag are negative
 	double precision wacu_aux(3)
 	double precision wacu,wacu_max
 	double precision area
+	double precision difaux
 
 	real getpar
 
@@ -198,13 +199,18 @@ c	    -----------------------------------------------------------------
 	  else if( idtype .eq. 2 ) then	!out of diag are negative
 
 c	    -----------------------------------------------------------------
-c 	    type 2
+c 	    type 2 (not working for 1d)
 c	    -----------------------------------------------------------------
+
+	    if( basin_element_is_1d(ie) ) then
+	      stop 'error stop diffweight: not ready for 1d'
+	    end if
 
             do i=1,n
 	      ia = 1+mod(i,3)
 	      ib = 1+mod(i+1,3)
-	      w = 1. / ev(13+i,ie)**2
+	      difaux = get_diff_of_vertex(i,ie)
+	      w = 1. / difaux**2
 	      w = w * fact
               bc(ia,ib) = -w		!bug fix 17.2.2010
               bc(ib,ia) = -w

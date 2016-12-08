@@ -1237,7 +1237,7 @@ c
 	include 'femtime.h'
 
 	logical bcolin,bdebug
-	integer ie,ii,l,kk,n
+	integer ie,ii,l,kk,nv
 	integer kn(3)
 	integer ilevel
 	integer ju,jv
@@ -1281,11 +1281,11 @@ c	------------------------------------------------------
 c	compute barotropic pressure term
 c	------------------------------------------------------
 
-	call get_vertex_area_of_element(ie,n,kn,b,c,area)
+	call get_vertex_area_of_element(ie,nv,kn,b,c,area)
 
 	bz=0.
 	cz=0.
-	do ii=1,n
+	do ii=1,nv
 	  kk=kn(ii)
 	  dz = znv(kk) - zeov(ii,ie)
 	  bz = bz + dz * b(ii)
@@ -1309,7 +1309,7 @@ c	------------------------------------------------------
 
 	end do
 
-	if( n == 2 ) vtlnv(1:ilevel,ie) = 0.
+	if( nv == 2 ) vtlnv(1:ilevel,ie) = 0.
 
 c	------------------------------------------------------
 c	barotropic transports

@@ -158,7 +158,7 @@
 !	  initialize element values
 !	  ------------------------------------------------------
 
-	  call get_vertex_area_of_element_kbcr(ie,nv,kn,b,c,area)
+	  call get_vertex_area_of_element(ie,nv,kn,b,c,area)
 	  areat = nv * area
 
 !	  ------------------------------------------------------
@@ -327,7 +327,7 @@
 !	  initialize element values
 !	  ------------------------------------------------------
 
-	  call get_vertex_area_of_element_kbcr(ie,nv,kn,b,c,area)
+	  call get_vertex_area_of_element(ie,nv,kn,b,c,area)
 	  areat = nv * area
 
 !	  ------------------------------------------------------

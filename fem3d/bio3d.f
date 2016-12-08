@@ -937,36 +937,22 @@ c*************************************************************
 
 	subroutine valid_node(val)
 
-c computes valied nodes (nodes that are inside lagoon)
+c computes valid nodes (nodes that are inside lagoon)
 c
 c must be customized
 
 	use basin
+	use average
 
 	implicit none
 
-	real val(1)
-
-	integer k,ie,ii,ia
-	integer iaout
+	real val(nkn)
 
 c-------------------------------
 	iaout = -1	!area code of elements outside lagoon
 c-------------------------------
 
-        do k=1,nkn
-          val(k) = 0.
-        end do
-
-        do ie=1,nel
-          ia = iarv(ie)
-          if( ia .ne. iaout ) then		!here put your area
-              do ii=1,3
-                k = nen3v(ii,ie)
-                val(k) = 1.
-              end do
-          end if
-        end do
+	call create_node_indicator((iarv /= iaout),v1v)
 
 	end
 

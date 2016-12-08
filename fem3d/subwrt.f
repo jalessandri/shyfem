@@ -410,26 +410,14 @@ c
 c on return rinside(k) = 1 for nodes inside domain
 
 	use basin
+	use average
 
 	implicit none
 
 	real rinside(nkn)
 	integer iaout		!area code for outside elements
 
-	integer k,ie,ii,ia,n
-	integer kn(3)
-
-        rinside = 0.
-
-        do ie=1,nel
-          ia = iarv(ie)
-          if( ia .ne. iaout ) then
-	      call basin_get_vertex_nodes(ie,n,kn)
-              do ii=1,n
-                rinside(kn(ii)) = 1.
-              end do
-          end if
-        end do
+	call create_node_indicator((iarv /= iaout),rinside)
 
 	end
 

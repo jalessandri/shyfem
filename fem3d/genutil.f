@@ -116,27 +116,27 @@ c gets records to extract from stdin
 
 c******************************************************************
 
-	subroutine level_e2k(nkn,nel,nen3v,ilhv,ilhkv)
+	subroutine level_e2k(ilhv,ilhkv)
 
 c computes ilhkv from ilhv
 
+	use basin
+
 	implicit none
 
-	integer nkn,nel
-	integer nen3v(3,nel)
 	integer ilhv(nel)
 	integer ilhkv(nkn)
 
-	integer k,ie,ii,lmax
+	integer k,ie,ii,lmax,n
+	integer kn(3)
 
-	do k=1,nkn
-	  ilhkv(k) = 1
-	end do
+	ilhkv = 1
 
 	do ie=1,nel
 	  lmax = ilhv(ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    if( ilhkv(k) .lt. lmax ) ilhkv(k) = lmax
 	  end do
 	end do
@@ -145,28 +145,27 @@ c computes ilhkv from ilhv
 
 c******************************************************************
 
-	subroutine level_k2e(nkn,nel,nen3v,ilhkv,ilhv)
+	subroutine level_k2e(ilhkv,ilhv)
 
 c computes ilhv from ilhkv - is not exact (need hev to do better)
 
+	use basin
+
 	implicit none
 
-	integer nkn,nel
-	integer nen3v(3,nel)
 	integer ilhkv(nkn)
 	integer ilhv(nel)
 
-	integer k,ie,ii,lmax,lmin
+	integer k,ie,ii,lmax,lmin,n
+	integer kn(3)
 
-	lmax = 0
-	do k=1,nkn
-	  lmax = max(lmax,ilhkv(k))
-	end do
+	lmax = maxval(ilhkv)
 
 	do ie=1,nel
 	  lmin = lmax
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    lmin = min(lmin,ilhkv(k))
 	  end do
 	  ilhv(ie) = lmin
@@ -176,23 +175,17 @@ c computes ilhv from ilhkv - is not exact (need hev to do better)
 
 c******************************************************************
 
-	subroutine compute_levels_on_element(ie,zenv,zeta)
+	subroutine compute_levels_on_element(ie,z3,zeta)
+
+	use basin
 
 	implicit none
 
 	integer ie
-	real zenv(3,*)
+	real z3(3,*)
 	real zeta
 
-	integer ii
-	real z
-
-	z = 0.
-	do ii=1,3
-	  z = z + zenv(ii,ie)
-	end do
-
-	zeta = z / 3.
+	zeta = basin_vertex_average(ie,z3)
 
 	end
 

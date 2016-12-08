@@ -502,6 +502,7 @@ c	nodes are linearly interpolated between start-ktilt and ktilt-end
 	do ibc=1,nbc
           ibtyp = itybnd(ibc)
           call kanfend(ibc,kranf,krend)
+	  if( krend-kranf.le.0 ) cycle
 	  call get_bnd_par(ibc,'ztilt',ztilt)
 	  call get_bnd_ipar(ibc,'ktilt',ktilt)
 	  if( ztilt .ne. 0. .and. ibtyp .eq. 1 ) then
@@ -584,6 +585,7 @@ c if ktilt is not given nothing is tilted
 	do ibc=1,nbc
          ibtyp = itybnd(ibc)
          call kanfend(ibc,kranf,krend)
+	 if( krend-kranf.le.0 ) cycle
 	 call get_bnd_ipar(ibc,'ktilt',ktilt)
 	 call get_bnd_par(ibc,'ztilt',ztilt)
 
@@ -651,6 +653,7 @@ c finds tilting node in boundary node list
 	if(ktilt.le.0) return
 
 	call kanfend(ibc,kranf,krend)
+	if(krend-kranf.le.0) return
 
 	berr = .true.
 	do i=kranf,krend

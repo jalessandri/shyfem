@@ -615,7 +615,7 @@ c outputs particles as density (concentration) to NOS file
 	integer ic,i
 	integer ip,ip_station
 	integer nvar,ivar,nlvdi
-	real area_elem,area_node,z
+	real area_node,z
 
         integer ecount(nel)
         integer kcount(nkn)

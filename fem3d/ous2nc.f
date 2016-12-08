@@ -191,7 +191,7 @@ c-----------------------------------------------------------------
 	end if
 
 	call init_sigma_info(nlv,hlv)
-	call level_e2k(nkn,nel,nen3v,ilhv,ilhkv)
+	call level_e2k(ilhv,ilhkv)
 	call compute_iztype(iztype)
 
 	if( breg ) call get_lmax_reg(nx,ny,fm,ilhv,lmax)

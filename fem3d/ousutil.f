@@ -24,6 +24,8 @@ c******************************************************************
 
 c transforms transports at elements to velocities at nodes
 
+	use evgeom
+
         implicit none
 
         integer nel
@@ -44,11 +46,10 @@ c transforms transports at elements to velocities at nodes
 	real hl(nlvddi)			!aux variable for real level thickness
 
 	logical bsigma
-        integer ie,ii,k,l,lmax,nsigma,nlvaux
+        integer ie,ii,k,l,lmax,nsigma,nlvaux,n
+	integer kn(3)
         real hmed,u,v,area,zeta
 	real hsigma
-
-	real area_elem
 
 	call get_sigma_info(nlvaux,nsigma,hsigma)
 	if( nlvaux .gt. nlvddi ) stop 'error stop transp2vel: nlvddi'
@@ -64,7 +65,8 @@ c transforms transports at elements to velocities at nodes
 	      
         do ie=1,nel
 
-	  area = area_elem(ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
+
 	  lmax = ilhv(ie)
 	  call compute_levels_on_element(ie,zenv,zeta)
 	  call get_layer_thickness(lmax,nsigma,hsigma,zeta,hev(ie),hlv,hl)
@@ -74,8 +76,8 @@ c transforms transports at elements to velocities at nodes
 	    hmed = hl(l)
 	    u = utlnv(l,ie) / hmed
 	    v = vtlnv(l,ie) / hmed
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    do ii=1,n
+	      k = kn(ii)
 	      uprv(l,k) = uprv(l,k) + area * u
 	      vprv(l,k) = vprv(l,k) + area * v
 	      weight(l,k) = weight(l,k) + area
@@ -103,6 +105,8 @@ c******************************************************************
 
 c transforms transports at elements to transports at nodes
 
+	use evgeom
+
         implicit none
 
         integer nel
@@ -120,8 +124,9 @@ c transforms transports at elements to transports at nodes
         real vtprv(nlvddi,1)
         real weight(nlvddi,1)
 
-        integer ie,ii,k,l,lmax
-        real u,v,w
+        integer ie,ii,k,l,lmax,n
+	integer kn(3)
+        real u,v,w,area
 
 	do k=1,nkn
 	  do l=1,nlv
@@ -133,14 +138,15 @@ c transforms transports at elements to transports at nodes
 	      
         do ie=1,nel
 	  lmax = ilhv(ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  do l=1,lmax
 	    u = utlnv(l,ie)
 	    v = vtlnv(l,ie)
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      utprv(l,k) = utprv(l,k) + u
-	      vtprv(l,k) = vtprv(l,k) + v
-	      weight(l,k) = weight(l,k) + 1.
+	    do ii=1,n
+	      k = kn(ii)
+	      utprv(l,k) = utprv(l,k) + u*area
+	      vtprv(l,k) = vtprv(l,k) + v*area
+	      weight(l,k) = weight(l,k) + area
 	    end do
 	  end do
 	end do
@@ -164,6 +170,8 @@ c***************************************************************
 
 c computes 2D velocities from 2D transports - returns result in u2v,v2v
 
+	use basin, only : basin_vertex_average
+
         implicit none
 
         integer nel
@@ -184,11 +192,7 @@ c computes 2D velocities from 2D transports - returns result in u2v,v2v
 	vmax = -1.e+30
 
         do ie=1,nel
-          zmed = 0.
-          do ii=1,3
-            zmed = zmed + zenv(ii,ie)
-          end do
-          zmed = zmed / 3.
+          zmed = basin_vertex_average(ie,zenv)
           hmed = hev(ie) + zmed
 
           u = ut2v(ie) / hmed
@@ -243,6 +247,7 @@ c***************************************************************
 	subroutine compute_volume(nel,zenv,hev,volume)
 
 	use evgeom
+	use basin, only : basin_vertex_average
 
 	implicit none
 
@@ -255,18 +260,13 @@ c***************************************************************
 	real zav,area
 	double precision vol,voltot,areatot
 
-	real area_elem
-
 	voltot = 0.
 	areatot = 0.
 
 	do ie=1,nel
-	  zav = 0.
-	  do ii=1,3
-	    zav = zav + zenv(ii,ie)
-	  end do
-	  area = area_elem(ie)
-	  vol = area * (hev(ie) + zav/3.)
+	  zav = basin_vertex_average(ie,zenv)
+	  area = get_total_area_of_element(ie)
+	  vol = area * (hev(ie) + zav)
 	  voltot = voltot + vol
 	  !areatot = areatot + area
 	end do
@@ -292,19 +292,14 @@ c***************************************************************
 	real h,area
 	double precision vol,voltot,areatot
 
-	real area_elem
-
 	voltot = 0.
 	areatot = 0.
 
 	do ie=1,nel
 	  if( iarv(ie) == ia ) cycle
-	  h = 0.
-	  do ii=1,3
-	    h = h + hm3v(ii,ie) + zenv(ii,ie)
-	  end do
-	  h = h / 3.
-	  area = area_elem(ie)
+	  h = basin_vertex_average_2d(ie,hm3v)
+	  h = h + basin_vertex_average_2d(ie,zenv)
+	  area = get_total_area_of_element(ie)
 	  vol = area * h
 	  voltot = voltot + vol
 	  areatot = areatot + area
@@ -323,6 +318,8 @@ c***************************************************************
 
 c debug write
 
+	use basin, only : basin_get_vertex_nodes
+
         implicit none
 
 	integer ks	!internal node number to output (0 for none)
@@ -334,7 +331,8 @@ c debug write
         real utlnv(nlvddi,nelddi)
         real vtlnv(nlvddi,nelddi)
 
-        integer ie,ii,k,l
+        integer ie,ii,k,l,n
+	integer kn(3)
         logical bk
 
 	if( ks .le. 0 ) return
@@ -344,8 +342,9 @@ c debug write
 
         do ie=1,nel
           bk = .false.
-          do ii=1,3
-            k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
+            k = kn(ii)
             if( k .eq. ks ) then
               write(66,*) 'ii: ',ii,ie,zenv(ii,ie)
               bk = .true.
@@ -654,6 +653,8 @@ c***************************************************************
      +				,zenv,uprv,vprv
      +                          ,zv,sv,dv)
 
+	use basin, only : basin_get_vertex_nodes
+
 	implicit none
 
 	integer nkn,nel,nlv,nlvddi
@@ -666,7 +667,8 @@ c***************************************************************
 	real sv(nlvddi,nkn)
 	real dv(nlvddi,nkn)
 
-	integer ie,k,ii,l,lmax
+	integer ie,k,ii,l,lmax,n
+	integer kn(3)
 	real u,v,s,d
 
 	zv = 1.e+30
@@ -674,8 +676,9 @@ c***************************************************************
 	dv = 0.
 
 	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    zv(k) = min(zv(k),zenv(ii,ie))
 	  end do
 	end do

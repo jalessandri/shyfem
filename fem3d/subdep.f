@@ -106,30 +106,14 @@ c makes hkv (nodewise depth)
 
 	use basin
 	use evgeom
+	use average
 
         implicit none
 
 c arguments
         real hkv(nkn)
-c local
-        integer ie,ii,k,n
-	integer kn(3)
-	real area
-        real haux(nkn)   !aux array -> bug - was integer
 
-        hkv = 0.
-        haux = 0.
-
-        do ie=1,nel
-	  call get_vertex_area_of_element(ie,n,kn,area)
-          do ii=1,n
-	    k = kn(ii)
-            hkv(k)=hkv(k)+hm3v(ii,ie)*area	!ccf
-            haux(k)=haux(k)+area
-          end do
-        end do
-
-        where( haux > 0 )  hkv = hkv / haux
+	call vertex_to_node(hm3v,hkv)
 
         end
 
@@ -206,27 +190,15 @@ c adjusts depth to reference and min/max values - only hm3v is changed
 
 	real hmin,hmax,href
 
-	integer iaux,ie,ii
+	integer iaux,ie,ii,n
 	real hmed
-
-c adjust depth to constant in element %%%%%%%%%%%%%%%%%%%%%%
-
-c        do ie=1,nel
-c          hmed=0.
-c          do ii=1,3
-c            hmed=hmed+hm3v(ii,ie)
-c          end do
-c          hmed=hmed/3.
-c          do ii=1,3
-c            hm3v(ii,ie)=hmed
-c          end do
-c        end do
 
 c adjust depth to minimum depth %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	iaux=0
 	do ie=1,nel
-	 do ii=1,3
+	 n = basin_get_vertex_of_element(ie)
+	 do ii=1,n
 	  if(hm3v(ii,ie).lt.hmin) then
 	    hm3v(ii,ie)=hmin
 	    iaux=iaux+1
@@ -249,7 +221,8 @@ c adjust depth to maximum depth %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	iaux=0
 	do ie=1,nel
-	 do ii=1,3
+	 n = basin_get_vertex_of_element(ie)
+	 do ii=1,n
 	  if(hm3v(ii,ie).gt.hmax) then
 	    hm3v(ii,ie)=hmax
 	    iaux=iaux+1
@@ -271,7 +244,8 @@ c adjust depth to maximum depth %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 c adjust depth to reference level %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	do ie=1,nel
-	 do ii=1,3
+	 n = basin_get_vertex_of_element(ie)
+	 do ii=1,n
 	  hm3v(ii,ie)=hm3v(ii,ie)-href
 	 end do
 	end do
@@ -340,15 +314,9 @@ c********************************************************************
 	real hm
 
 	do ie=1,nel
-	  hm = 0.
-	  do ii=1,3
-	    hm = hm + hm3v(ii,ie)
-	  end do
-	  hm = hm / 3.
+	  hm = basin_vertex_average(ie,hm3v)
 	  if( hm .gt. hsigma ) then
-	    do ii=1,3
-	      hm3v(ii,ie) = hm
-	    end do
+	    hm3v(:,ie) = hm
 	  end if
 	end do
 
@@ -413,9 +381,7 @@ c adjourns hev and hkv from hm3v (if it has been changed)
 	integer ie,ii
 
 	do ie=1,nel
-	  do ii=1,3
-	    hm3v(ii,ie) = hev(ie)
-	  end do
+	  hm3v(:,ie) = hev(ie)
 	end do
 
         call make_hkv
@@ -502,7 +468,8 @@ c-------------------------------------------------------
         do ie=1,nel
           ihmin = 0
           ihmax = 0
-          do ii=1,3
+	  n = basin_get_vertex_of_element(ie)
+          do ii=1,n
             h = hm3v(ii,ie)
             if( h .lt. hsigma ) then
               ihmin = ihmin + 1

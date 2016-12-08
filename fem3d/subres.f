@@ -156,9 +156,7 @@ c---------------------------------------------------------------------
 	    ur(l,ie)=ur(l,ie)+utlnv(l,ie)
 	    vr(l,ie)=vr(l,ie)+vtlnv(l,ie)
           end do
-	  do ii=1,3
-	    zer(ii,ie)=zer(ii,ie)+zenv(ii,ie)
-	  end do
+	  zer(:,ie)=zer(:,ie)+zenv(:,ie)
 	end do
         do k=1,nkn
 	  znr(k)=znr(k)+znv(k)
@@ -184,9 +182,7 @@ c---------------------------------------------------------------------
 	      ur(l,ie)=ur(l,ie)*rr
 	      vr(l,ie)=vr(l,ie)*rr
             end do
-	    do ii=1,3
-	      zer(ii,ie)=zer(ii,ie)*rr
-	    end do
+	    zer(:,ie)=zer(:,ie)*rr
 	  end do
           do k=1,nkn
 	    znr(k)=znr(k)*rr
@@ -208,9 +204,7 @@ c---------------------------------------------------------------------
 	      ur(l,ie)=0.
 	      vr(l,ie)=0.
             end do
-	    do ii=1,3
-	      zer(ii,ie)=0.
-	    end do
+	    zer(:,ie)=0.
 	  end do
 	  do k=1,nkn
             znr(k) = 0.

@@ -577,9 +577,7 @@ c****************************************************************
 	    utlnv(l,ie) = rt*ut(l,ie,1) + rr*ut(l,ie,2)
 	    vtlnv(l,ie) = rt*vt(l,ie,1) + rr*vt(l,ie,2)
 	  end do
-	  do ii=1,3
-	    zenv(ii,ie) = rt*ze(ii,ie,1) + rr*ze(ii,ie,2)
-	  end do
+	  zenv(:,ie) = rt*ze(:,ie,1) + rr*ze(:,ie,2)
 	end do
 
 	do k=1,nkn
@@ -698,30 +696,28 @@ c****************************************************************
 
 	dtt = dt
 	dtr = dtr + dtt
-	dtr = 1.
+	dtr = 1.						!FIXME_GGU
 
 	do ie=1,nel
 	  lmax = ilhv(ie)
 	  do l=1,lmax
-	    ut(l,ie,1) = ut(l,ie,1) + utlnv(l,ie) * dtt
-	    vt(l,ie,1) = vt(l,ie,1) + vtlnv(l,ie) * dtt
+	    !ut(l,ie,1) = ut(l,ie,1) + utlnv(l,ie) * dtt	!FIXME_GGU
+	    !vt(l,ie,1) = vt(l,ie,1) + vtlnv(l,ie) * dtt
 	    ut(l,ie,1) = utlnv(l,ie)
 	    vt(l,ie,1) = vtlnv(l,ie)
 	  end do
-	  do ii=1,3
-	    ze(ii,ie,1) = ze(ii,ie,1) + zenv(ii,ie) * dtt
-	    ze(ii,ie,1) = zenv(ii,ie)
-	  end do
+	  !ze(:,ie,1) = ze(:,ie,1) + zenv(:,ie) * dtt
+	  ze(:,ie,1) = zenv(:,ie)
 	end do
 
 	do k=1,nkn
 	  lmax = ilhkv(k)
 	  do l=1,lmax
-	    wn(l,k,1) = wn(l,k,1) + wlnv(l,k) * dtt
+	    !wn(l,k,1) = wn(l,k,1) + wlnv(l,k) * dtt
 	    wn(l,k,1) = wlnv(l,k)
-	    sn(l,k,1) = sn(l,k,1) + saltv(l,k) * dtt
+	    !sn(l,k,1) = sn(l,k,1) + saltv(l,k) * dtt
 	    sn(l,k,1) = saltv(l,k)
-	    tn(l,k,1) = tn(l,k,1) + tempv(l,k) * dtt
+	    !tn(l,k,1) = tn(l,k,1) + tempv(l,k) * dtt
 	    tn(l,k,1) = tempv(l,k)
 	  end do
 	  zn(k,1) = zn(k,1) + znv(k) * dtt
@@ -754,9 +750,7 @@ c****************************************************************
 	    ut(l,ie,1) = ut(l,ie,1) * rr
 	    vt(l,ie,1) = vt(l,ie,1) * rr
 	  end do
-	  do ii=1,3
-	    ze(ii,ie,1) = ze(ii,ie,1) * rr
-	  end do
+	  ze(:,ie,1) = ze(:,ie,1) * rr
 	end do
 
 	do k=1,nkn

@@ -91,7 +91,8 @@ c***********************************************************
 
         INTERFACE		 basin_element_average
         MODULE PROCEDURE
-     +				 basin_element_average_2d
+     +				 basin_element_average_2d_r
+     +				,basin_element_average_2d_d
      +				,basin_element_average_3d
         END INTERFACE
 
@@ -103,6 +104,7 @@ c***********************************************************
         INTERFACE		 basin_vertex_average
         MODULE PROCEDURE
      +				 basin_vertex_average_2d
+     +				,basin_vertex_average_2d_minmax
         END INTERFACE
 
 !==================================================================
@@ -341,9 +343,9 @@ c***********************************************************
 
 c***********************************************************
 
-	pure function basin_element_average_2d(ie,value)
+	pure function basin_element_average_2d_r(ie,value)
 
-	real				:: basin_element_average_2d
+	real				:: basin_element_average_2d_r
 	integer, intent(in)		:: ie
 	real, intent(in)		:: value(nkn)
 
@@ -358,9 +360,32 @@ c***********************************************************
 	end do
 	aver = aver / n
 
-	basin_element_average_2d = aver
+	basin_element_average_2d_r = aver
 
-	end function basin_element_average_2d
+	end function basin_element_average_2d_r
+
+c***********************************************************
+
+	pure function basin_element_average_2d_d(ie,value)
+
+	real				:: basin_element_average_2d_d
+	integer, intent(in)		:: ie
+	double precision, intent(in)	:: value(nkn)
+
+	integer ii,n
+	double precision aver
+
+	n = basin_get_vertex_of_element(ie)
+
+	aver = 0.
+	do ii=1,n
+	  aver = aver + value(nen3v(ii,ie))
+	end do
+	aver = aver / n
+
+	basin_element_average_2d_d = aver
+
+	end function basin_element_average_2d_d
 
 c***********************************************************
 
@@ -391,9 +416,9 @@ c***********************************************************
 
 	pure function basin_vertex_average_2d(ie,val3)
 
-	real				:: basin_vertex_average_2d
-	integer, intent(in)		:: ie
-	real, intent(in)		:: val3(3,nel)
+	real			:: basin_vertex_average_2d
+	integer, intent(in)	:: ie
+	real, intent(in)	:: val3(3,nel)
 
 	if( basin_element_is_1d(ie) ) then
 	  basin_vertex_average_2d = (val3(1,ie)+val3(2,ie))/2.
@@ -402,6 +427,32 @@ c***********************************************************
 	end if
 	  
 	end function basin_vertex_average_2d
+
+c***********************************************************
+
+	pure function basin_vertex_average_2d_minmax(mode,ie,val3)
+
+	real			:: basin_vertex_average_2d_minmax
+	integer, intent(in)	:: mode
+	integer, intent(in)	:: ie
+	real, intent(in)	:: val3(3,nel)
+
+	integer n
+	real val
+
+	n = basin_get_vertex_of_element(ie)
+
+	if( mode > 0 ) then
+	  val = maxval(val3(1:n,ie))
+	else if( mode < 0 ) then
+	  val = minval(val3(1:n,ie))
+	else
+	  val = basin_vertex_average_2d(ie,val3)
+	end if
+	  
+	basin_vertex_average_2d_minmax = val
+
+	end function basin_vertex_average_2d_minmax
 
 c***********************************************************
 c***********************************************************

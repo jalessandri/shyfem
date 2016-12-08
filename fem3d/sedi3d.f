@@ -1029,7 +1029,8 @@ c DOCS  END
         real pers(nkn,nsdim)			!percbd initialized from file
         real tuek(nkn,1)			!tauce initialized from file
         integer npi
-        integer k,ib,is,ie,ii
+        integer k,ib,is,ie,ii,n
+	integer kn(3)
 
         save /sedpa/
 
@@ -1044,8 +1045,10 @@ c DOCS  END
           itype = iarv(ie) + 1
           if ( npi.eq.1 ) itype = 1
 
-          do ii = 1,3
-            k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+
+          do ii = 1,n
+            k = kn(ii)
             tuek(k,1) = tue(itype)
             do is = 1,nscls
               pers(k,is) = prin(itype,is)
@@ -2661,26 +2664,19 @@ c DOCS  END
 
         implicit none
 
-        include 'param.h'
-
-
         double precision v1v(nkn),v2v(nkn),v3v(nkn),v4v(nkn)
 	double precision bbk(nkn),bbe(nel)
 
         double precision high,hmed,h
-	double precision ao
-        integer ie,k,ii
+	double precision area
+        integer ie,k,ii,n
+	integer kn(3)
 
         high = 1.d30
 	bbe = 0.
 
         do ie=1,nel
-          h = 0.d0
-          do ii=1,3
-            k = nen3v(ii,ie)
-            h = h + bbk(k)
-          end do
-          bbe(ie) = h/3.d0
+          bbe(ie) = basin_element_average(ie,bbk)
         end do
 
         do k=1,nkn
@@ -2691,13 +2687,13 @@ c DOCS  END
         end do
 
         do ie=1,nel
-          ao = get_total_area_of_element(ie)
-          do ii=1,3
-            k = nen3v(ii,ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
+          do ii=1,n
+            k = kn(ii)
             v1v(k) = dmin1(v1v(k),bbe(ie))
             v2v(k) = dmax1(v2v(k),bbe(ie))
-            v3v(k) = v3v(k) + ao * bbe(ie)
-            v4v(k) = v4v(k) + ao
+            v3v(k) = v3v(k) + area * bbe(ie)
+            v4v(k) = v4v(k) + area
           end do
         end do
 
@@ -3710,7 +3706,8 @@ c DOCS  END
 
         real dh
         real evdep				!element depth variation
-        integer ie,ii,k,iw
+        integer ie,ii,k,iw,n
+	integer kn(3)
 
 	real bdhrst(nkn)
 	integer nkk,nv,iv
@@ -3741,8 +3738,9 @@ c DOCS  END
 
         do ie = 1,nel
           evdep = 0.
-          do ii = 1,3
-            k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii = 1,n
+            k = kn(ii)
 	    if( iwegv(ie) .gt. 0 ) then
 	      dh = 0.
 	    else
@@ -3751,11 +3749,11 @@ c DOCS  END
             evdep = evdep + dh
             !hm3v(ii,ie) = hm3v(ii,ie) - dh	????
           end do
-          evdep = evdep / 3.
+          evdep = evdep / n
           if ((hlhv(ie) - evdep) .lt. 0.2 ) evdep = 0.
 
           hlhv(ie) = hlhv(ie) - evdep
-	  do ii = 1,3
+	  do ii = 1,n
             hm3v(ii,ie) = hm3v(ii,ie) - evdep
           end do
 	  hev(ie) = hev(ie) - evdep

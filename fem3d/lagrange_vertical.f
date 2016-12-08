@@ -121,6 +121,7 @@ c computes layer thickness for element ie
 	use mod_depth
 	use mod_hydro
 	use levels
+	use basin
 
 	implicit none
 
@@ -129,7 +130,7 @@ c computes layer thickness for element ie
 	real hl(lmax)		!layer thickness (return)
 	real htot,htotz		!total depth without and with zeta (return)
 
-	integer nlev,nsigma,ii,lmax_act
+	integer nlev,nsigma,ii,lmax_act,n
 	real hsigma
 	real z,h
 
@@ -142,10 +143,11 @@ c computes layer thickness for element ie
 
 	h = hev(ie)
 	z = 0.
-	do ii=1,3
+	n = basin_get_vertex_of_element(ie)
+	do ii=1,n
 	  z = z + zenv(ii,ie) + zeov(ii,ie)
 	end do
-	z = z / 6.
+	z = z / (2*n)
 
         call get_layer_thickness(lmax,nsigma,hsigma,z,h,hlv,hl)
 	htot = h

@@ -20,7 +20,13 @@ c****************************************************************
 
 c initializes length of element sides and fluxes
 
+	use basin
+
 	implicit none
+
+	if( basin_has_1d() ) then
+	  stop 'error stop lagr_setup_timestep: not yet ready for 1d'
+	end if
 
 	call rprs
 	call setup_fluxes_2d
@@ -36,37 +42,22 @@ c initializes length of element sides
 
 	use mod_lagrange
 	use basin
+	use evgeom
 
 	implicit none
 	
-	real x1,x2,y1,y2,dx,dy,ddx,ddy,d
-	integer ie,k,i1,i2,p1,p2
+	integer ie,ii
 
-	integer icall
-	save icall
-	data icall / 0 /
+	integer, save :: icall = 0
 
 	if( icall .ne. 0 ) return
 
 	icall = 1
 
 	do ie=1,nel
-	 do k=1,3
-          i1=mod(k,3)+1
-          i2=mod(i1,3)+1
-	  p1=nen3v(i1,ie)
-	  p2=nen3v(i2,ie)
-	  x1=xgv(p1)
-	  x2=xgv(p2)
-	  y1=ygv(p1)
-	  y2=ygv(p2)
-	  dx=x2-x1
-	  dy=y2-y1
-	  ddx=dx**2
-	  ddy=dy**2
-	  d=sqrt(ddx+ddy)
-	  dvert(k,ie)=d
-	 end do
+	  do ii=1,3
+	    dvert(ii,ie) = get_distance_of_vertex(ii,ie)
+	  end do
 	end do
 
 	end
@@ -108,14 +99,7 @@ c	--------------------------------------------
 	az = azpar
 	azlgr = az		!store in include file
 
-        do ie=1,nel
-	  lmax = ilhv(ie)
-          do ii=1,3
-	    do l=1,lmax
-              flux3d(l,ii,ie)=0
-	    end do
-          end do
-        end do
+        flux3d=0.
 
 c	--------------------------------------------
 c	loop on nodes
@@ -170,12 +154,8 @@ c sets up fluxes - has to be done every time step
 	
 	integer flxtype
 
-        do ie=1,nel
-          do ii=1,3
-            flux2d(ii,ie)=0
-            flux2d_aux(ii,ie)=0
-          end do
-        end do
+        flux2d=0
+        flux2d_aux=0
 
 	call getaz(azpar)
 	az = azpar

@@ -118,20 +118,14 @@ c interpolation of velocities on the points that have been backtraced
 
         implicit none
 
-        include 'param.h'
-        
 	real uadv(1), vadv(1)
 
-                
-       
-        
-
-       
         real x,y
         real vold,vnow
         real up,vp,zp
         real u(3),v(3),z(3)
-        integer i,ii,ie,k
+        integer i,ii,ie,k,n
+	integer kn(3)
 	real uc,vc,zc
 	integer ibtype,ib
 	logical blimit,binertial
@@ -148,18 +142,20 @@ c	 --------------------------------------
 c	 first compute values in central point of actual element
 c	 --------------------------------------
 
+	 call basin_get_vertex_nodes(ie,n,kn)
+
 	 uc = 0.
 	 vc = 0.
 	 zc = 0.
-         do ii=1,3
-            k=nen3v(ii,ie)
+         do ii=1,n
+            k=kn(ii)
             uc=uc+uprv(1,k)
             vc=vc+vprv(1,k)
 	    zc=zc+zeov(ii,ie)
          end do
-	 uc = uc / 3.
-	 vc = vc / 3.
-	 zc = zc / 3.
+	 uc = uc / n
+	 vc = vc / n
+	 zc = zc / n
 	 zc = zc + hev(ie)
 
 c	 --------------------------------------
@@ -174,8 +170,8 @@ c	 --------------------------------------
          i=ie_back(ie)
 
          if(i.gt.0) then		! only if we found element
-           do ii=1,3
-            k=nen3v(ii,i)
+           do ii=1,n
+            k=kn(ii)
             u(ii)=uprv(1,k)
             v(ii)=vprv(1,k)
            end do
@@ -223,8 +219,8 @@ c	   --------------------------------------
 
 c        check if we are on open boundary -> no backtracking
 
-         do ii=1,3
-          k=nen3v(ii,ie)                 
+         do ii=1,n
+          k=kn(ii)                 
           if( flxtype(k) .ge. 3 ) then  ! we are close to open boundary
            uadv(ie) = 0
            vadv(ie) = 0

@@ -1355,7 +1355,7 @@ c*************************************************************
 	save ilast2
 
 	logical berror
-	integer k,ie,ii,ia,i,n
+	integer k,ie,ii,ia,i,nv
 	integer kn(ii)
 	integer itype
 	real area
@@ -1809,8 +1809,8 @@ c     intialize
 c     compute total volume for all areas given -> store in volaux
 
 	do ie=1,nel
-	  call get_vertex_area_of_element(ie,n,area)
-	  do ii=1,n
+	  call get_vertex_area_of_element(ie,nv,area)
+	  do ii=1,nv
 	    k = kn(ii)
 	    hdep = hm3v(ii,ie)
 	    ia = aree(k)
@@ -1824,8 +1824,9 @@ c     compute total volume for all areas given -> store in volaux
 c     compute and set loading in eload [g/(m**3 day)] == [mg/(l day]
 
 	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
+	    k = kn(ii)
 	    ia = aree(k)
 	    vol = volaux(ia)
 	    do i=1,nstate

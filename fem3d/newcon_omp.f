@@ -316,10 +316,10 @@ c*****************************************************************
         
         logical :: btvdv,btvd,bgradup
 	integer :: k,ii,l,iii,ll,ibase,lstart,ilevel,itot,isum
-	integer :: n,i,iext
+	integer :: n,i,iext,nv
 	integer, dimension(3) :: kn
         double precision :: cexpl,cbm,ccm,waux,loading,wws,us,vs
-        double precision :: aj,rk3,aj4,aj12
+        double precision :: area,rk3
         double precision :: hmed,hmbot,hmtop,hmotop,hmobot
         double precision :: hmntop,hmnbot,rvptop,rvpbot,w,aux
         double precision :: flux_tot,flux_tot1,flux_top,flux_bot
@@ -379,16 +379,8 @@ c*****************************************************************
 	    clm = 0.
 	    clp = 0.
       
-	do ii=1,3
-          k=nen3v(ii,ie)
-	  kn(ii)=k
-	  b(ii)=ev(ii+3,ie)
-	  c(ii)=ev(ii+6,ie)
-	end do
+	call get_vertex_area_of_element(ie,nv,kn,b,c,area)
 
-	aj=ev(10,ie)    !area of triangle / 12
-	aj4=4.*aj
-	aj12=12.*aj
         ilevel=ilhv(ie)
 
 ! 	----------------------------------------------------------------
@@ -400,7 +392,7 @@ c*****************************************************************
           !haver(l) = 0.5 * ( hdeov(l,ie) + hdenv(l,ie) )
           haver(l) = rso*hdenv(l,ie) + rsot*hdeov(l,ie)
 	  presentl(l) = 1.
-	  do ii=1,3
+	  do ii=1,nv
 	    k=kn(ii)
 	    hn = hdknv(l,k)		! there are never more layers in ie
 	    ho = hdkov(l,k)		! ... than in k
@@ -430,9 +422,7 @@ c*****************************************************************
 ! 	and there should be no contribution from this element
 ! 	to the vertical velocity
 
-	do ii=1,3
-	  wl(ilevel,ii) = 0.
-	end do
+	wl(ilevel,:) = 0.
 
 ! 	----------------------------------------------------------------
 ! 	compute vertical fluxes (w/o vertical TVD scheme)
@@ -449,13 +439,14 @@ c*****************************************************************
         us=az*utlnv(l,ie)+azt*utlov(l,ie)             !$$azpar
         vs=az*vtlnv(l,ie)+azt*vtlov(l,ie)
 
-        rk3 = 3. * rkpar * difhv(l,ie)
+        !rk3 = 3. * rkpar * difhv(l,ie)
+        rk3 = rkpar * difhv(l,ie)
 
 	cbm=0.
 	ccm=0.
 	itot=0
 	isum=0
-	do ii=1,3
+	do ii=1,nv
 	  k=kn(ii)
 	  f(ii)=us*b(ii)+vs*c(ii)	!$$azpar
 	  if(f(ii).lt.0.) then	!flux out of node
@@ -480,7 +471,7 @@ c*****************************************************************
 ! 	  ----------------------------------------------------------------
 
           waux = 0.
-          do iii=1,3
+          do iii=1,nv
             waux = waux + wdifhv(iii,ii,ie) * cl(l,iii)
           end do
           wdiff(ii) = waux
@@ -567,21 +558,16 @@ c*****************************************************************
 ! 		minus the sum of these nodes for the flux of this node
 
 	if(itot.eq.1) then	!$$flux
-	  fl(1)=f(1)*cl(l,isum)
-	  fl(2)=f(2)*cl(l,isum)
-	  fl(3)=f(3)*cl(l,isum)
+	  fl(:)=f(:)*cl(l,isum)
 	else if(itot.eq.2) then
+          if( nv == 2 ) stop 'error stop conz3d_omp: itot and nv'
 	  isum=6-isum
-	  fl(1)=f(1)*cl(l,1)
-	  fl(2)=f(2)*cl(l,2)
-	  fl(3)=f(3)*cl(l,3)
+	  fl(:)=f(:)*cl(l,:)
 	  fl(isum) = 0.
 	  fl(isum) = -(fl(1)+fl(2)+fl(3))
 	  isum=6-isum		!reset to original value
 	else			!exception	$$itot0
-	  fl(1)=0.
-	  fl(2)=0.
-	  fl(3)=0.
+	  fl(:)=0.
 	end if
 
 ! 	----------------------------------------------------------------
@@ -590,9 +576,8 @@ c*****************************************************************
 
         if( btvd ) then
 	  iext = 0
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    if( k == 0 ) cycle
+	  do ii=1,nv
+	    k = kn(ii)
 	    if( is_external_boundary(k) ) iext = iext + 1
 	  end do
 
@@ -609,7 +594,7 @@ c*****************************************************************
 ! 	contributions from nudging
 ! 	----------------------------------------------------------------
 
-	do ii=1,3
+	do ii=1,nv
 	  fnudge(ii) = robs * rtau(l,ii) * ( cob(l,ii) - cl(l,ii) )
 	end do
 
@@ -617,15 +602,15 @@ c*****************************************************************
 ! 	sum explicit contributions
 ! 	----------------------------------------------------------------
 
-	do ii=1,3
+	do ii=1,nv
 	  k=kn(ii)
           hmed = haver(l)                    !new ggu   !HACK
-	  cexpl = aj4 * ( hold(l,ii)*cl(l,ii)
+	  cexpl = area * ( hold(l,ii)*cl(l,ii)
      +				+ dt *  ( 
      +					    hold(l,ii)*fnudge(ii)
-     +					  + 3.*fl(ii) 
+     +					  + nv*fl(ii) 
      +					  - fw(ii)
-     +					  - rk3*hmed*wdiff(ii)
+     +					  - nv*rk3*hmed*wdiff(ii)
      +					  - fd(ii)
      +					)
      +			               )
@@ -639,9 +624,9 @@ c*****************************************************************
 	    stop 'error stop: assumption violated'
 	  end if
 	  
-	  alow  = aj4 * dt * clm(l,ii)
-	  ahigh = aj4 * dt * clp(l,ii)
-	  adiag = aj4 * dt * clc(l,ii) + aj4 * hnew(l,ii)
+	  alow  = area * dt * clm(l,ii)
+	  ahigh = area * dt * clp(l,ii)
+	  adiag = area * dt * clc(l,ii) + area * hnew(l,ii)
 	  cn(l,k)    = cn(l,k)    + cexpl
 	  clow(l,k)  = clow(l,k)  + alow
 	  chigh(l,k) = chigh(l,k) + ahigh   
