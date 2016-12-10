@@ -233,7 +233,8 @@ c copies depth values from elems/nodes to nodes/elems
 
         integer ike	!1: depth is in hev    2: depth is in hkv
 
-        integer k,ie,ii
+        integer k,ie,ii,n
+	integer kn(3)
         real depth
         integer ic(nkn)
 
@@ -243,8 +244,9 @@ c copies depth values from elems/nodes to nodes/elems
           hkv = 0.
 
           do ie=1,nel
-            do ii=1,3
-              k = nen3v(ii,ie)
+	    call basin_get_vertex_nodes(ie,n,kn)
+            do ii=1,n
+              k = kn(ii)
               hkv(k) = hkv(k) + hev(ie)
 	      hm3v(ii,ie) = hev(ie)
               ic(k) = ic(k) + 1                 !BUG - this was missing
@@ -256,13 +258,14 @@ c copies depth values from elems/nodes to nodes/elems
         else                            !nodewise
 
           do ie=1,nel
+	    call basin_get_vertex_nodes(ie,n,kn)
             depth = 0.
-            do ii=1,3
-              k = nen3v(ii,ie)
+            do ii=1,n
+              k = kn(ii)
               depth = depth + hkv(k)
 	      hm3v(ii,ie) = hkv(k)
             end do
-            hev(ie) = depth / 3.
+            hev(ie) = depth / n
           end do
 
         end if

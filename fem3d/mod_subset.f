@@ -54,13 +54,14 @@ c***********************************************************
     	
       implicit none
       
-      integer :: ie,ik,i,j,k,n,m,a,b,c
+      integer :: ie,ik,i,j,k,n,m,a,b,c,nv,ii
+      integer :: kn(3)
       integer :: row_cluster
       integer :: numsubset,start,subset_lenght
       integer :: sum_subset_lenght
       integer :: max_subset_lenght
       integer :: max_l,min_l
-      logical :: not_contained,stop_criterion
+      logical :: not_contained,stop_criterion,bcontain
       integer,allocatable,dimension(:) :: subset
       integer, dimension(2) :: temp
       double precision :: timer
@@ -76,12 +77,12 @@ c***********************************************************
       nodes_counter = 0
      
       do ie=1,nel
-         nodes_counter(1,nen3v(1,ie)) = nen3v(1,ie)
-	 nodes_counter(2,nen3v(1,ie)) = nodes_counter(2,nen3v(1,ie))+1
-	 nodes_counter(1,nen3v(2,ie)) = nen3v(2,ie)
-	 nodes_counter(2,nen3v(2,ie)) = nodes_counter(2,nen3v(2,ie))+1
-	 nodes_counter(1,nen3v(3,ie)) = nen3v(3,ie)
-	 nodes_counter(2,nen3v(3,ie)) = nodes_counter(2,nen3v(3,ie))+1
+	call basin_get_vertex_nodes(ie,nv,kn)
+	do ii=1,nv
+	  k = kn(ii)
+          nodes_counter(1,k) = k
+	  nodes_counter(2,k) = nodes_counter(2,k) + 1
+	end do
       enddo
       
       max_sharing_node = MAXVAL(nodes_counter(2,:))
@@ -92,7 +93,7 @@ c***********************************************************
 	DO k = j+1,nkn
 	  IF(nodes_counter(2,j) .lt. nodes_counter(2,k)) THEN
 	  temp = nodes_counter(:,k)
-	  nodes_counter(:,k) =nodes_counter(:,j)
+	  nodes_counter(:,k) = nodes_counter(:,j)
 	  nodes_counter(:,j) = temp
 	  ENDIF
 	END DO 
@@ -113,13 +114,16 @@ c***********************************************************
 	n = 1
 	nodes_map(0,i) = i
 	do j=1,nel
-	  
-	  if(nen3v(1,j) .eq. i .OR. nen3v(2,j) .eq. i .OR.
-     +  	  nen3v(3,j) .eq. i) then
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  bcontain = .false.
+	  do ii=1,nv
+	    k = kn(ii)
+	    if( kn(ii) == i ) bcontain = .true.
+	  end do
+	  if( bcontain ) then
 	    nodes_map(n,i) = j
 	    n = n+1
 	  endif
-	  
 	end do
       end do
       
@@ -274,22 +278,25 @@ c***********************************************************
 
 c***********************************************************
 
-      logical function indipendent_element(i,j)
+      logical function indipendent_element(ie1,ie2)
       
-	use basin, only : nen3v
+	use basin
 
       implicit none
       
-      integer,intent(in) :: i,j
-      integer :: a,b,c
-      !logical :: indipendent_element
+      integer,intent(in) :: ie1,ie2
+      integer :: n1,n2,ii1,ii2
+	integer kn1(3),kn2(3)
       
       indipendent_element = .true.
       	   
- 	      do b = 1,3
- 	       do c = 1,3
-		if(nen3v(b,i) .eq. nen3v(c,j)) then
- 		indipendent_element = .false.
+	call basin_get_vertex_nodes(ie1,n1,kn1)
+	call basin_get_vertex_nodes(ie2,n2,kn2)
+
+ 	      do ii1 = 1,n1
+ 	       do ii2 = 1,n2
+		if( kn1(ii1) == kn2(ii2)) then
+ 		 indipendent_element = .false.
  		endif
  	      enddo
  	    enddo
@@ -603,13 +610,16 @@ c***********************************************************
 	integer ic_from,ic_to
 
 	integer ie,ires
-	integer ii,k
+	integer ii,k,n
+	integer kn(3)
 
 	may_color = .false.
 
 	if( color(ie) /= ic_from ) return
-	do ii=1,3
-	  k = nen3v(ii,ie)
+	call basin_get_vertex_nodes(ie,n,kn)
+
+	do ii=1,n
+	  k = kn(ii)
 	  ires = ibits(colork(k),ic_to,1)
 	  !if( colork(k) /= 0 ) return
 	  if( ires /= 0 ) return
@@ -625,13 +635,16 @@ c***********************************************************
 
 	integer ie,ic_new
 
-	integer ii,k,ic_old
+	integer ii,k,ic_old,n
 	integer col
+	integer kn(3)
 
 	ic_old = color(ie)
 	color(ie) = ic_new
-	do ii=1,3
-	  k = nen3v(ii,ie)
+	call basin_get_vertex_nodes(ie,n,kn)
+
+	do ii=1,n
+	  k = kn(ii)
 	  col = colork(k)
 	  col = ibclr(col,ic_old)
 	  col = ibset(col,ic_new)
@@ -644,7 +657,8 @@ c***********************************************************
 
 	subroutine check_color
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	integer ic,col,ires
 	logical berror
 
@@ -652,8 +666,9 @@ c***********************************************************
 
 	do ie=1,nel
 	  ic = color(ie)
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    col = colork(k)
 	    ires = ibits(col,ic,1)
 	    if( ires == 0 ) then

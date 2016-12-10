@@ -236,12 +236,7 @@ c	  -----------------------------------------------
 	  nok = 0
 
 	  do ie=1,nel
-	    h = 0.
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      h = h + hkv(k)
-	    end do
-	    hnew = h / 3.
+	    hnew = basin_element_average(ie,hkv)
 	    hold = hev(ie)
 
             beta = (hold-h1)/(h2-h1)
@@ -376,12 +371,14 @@ c deletes elements with depth lower then hmin
 
 	use mod_depth
 	use basin
+	use average
 
 	implicit none
 
 	real hmin
 
-	integer ie,ii,k
+	integer ie,ii,k,nv
+	integer kn(3)
 	integer n,ieh,kh
 
 	integer ind(nel)	!index for nodes/elements to substitute
@@ -400,9 +397,7 @@ c-----------------------------------------
 	    ipev(ie) = ipev(ieh)
 	    iarv(ie) = iarv(ieh)
 	    hev(ie) = hev(ieh)
-	    do ii=1,3
-	      nen3v(ii,ie) = nen3v(ii,ieh)
-	    end do
+	    nen3v(:,ie) = nen3v(:,ieh)
 	  end if
 	end do
 
@@ -418,12 +413,7 @@ c-----------------------------------------
 	  rind(k) = 0
 	end do
 
-	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    hkv(k) = 1
-	  end do
-	end do
+	call create_node_indicator(.true.,hkv)
 
 	n = nkn
 	call determine_shift(n,ind,hkv,hmin)
@@ -446,8 +436,9 @@ c adjust element index
 c-----------------------------------------
 
 	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
+	    k = kn(ii)
 	    kh = rind(k)
 	    if( kh .gt. 0 ) nen3v(ii,ie) = kh
 	  end do

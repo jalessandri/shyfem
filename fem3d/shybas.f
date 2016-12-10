@@ -183,7 +183,8 @@ c info on node number
 
 	logical bnode
 
-	integer ie,ii,in
+	integer ie,ii,in,n
+	integer kn(3)
 	integer kext,kint
 	integer ipext,ipint
 	logical bloop
@@ -219,13 +220,14 @@ c look for node and give info
            write(6,2200)
 
            do ie=1,nel
+	      call basin_get_vertex_nodes(ie,n,kn)
               in=0
-              do ii=1,3
-                 if(nen3v(ii,ie).eq.kint) in=ii
+              do ii=1,n
+                 if(kn(ii).eq.kint) in=ii
               end do
               if(in.gt.0) then
                  write(6,2000)   ipev(ie)
-     +                          ,(ipext(nen3v(ii,ie)),ii=1,3)
+     +                          ,(ipext(kn(ii)),ii=1,3)
      +                          ,(hm3v(ii,ie),ii=1,3)
      +                          ,iarv(ie),hm3v(in,ie)
               end if
@@ -248,16 +250,17 @@ c*****************************************************************
 c info on element number
 
 	use basin
+	use evgeom
 
 	implicit none
 
 	logical belem
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	integer eext,eint
 	integer ipext,ieext,ieint
 	logical bloop
-	real areatr
 
 	belem = .false.
 	bloop = .true.
@@ -284,16 +287,17 @@ c info on element number
            write(6,*)
 
 	   ie = eint
-           do ii=1,3
-              k=nen3v(ii,ie)
+	   call basin_get_vertex_nodes(ie,n,kn)
+           do ii=1,n
+              k=kn(ii)
               write(6,*) ' (x,y) : ',xgv(k),ygv(k)
 	   end do
 
            write(6,3200)
            write(6,3000) ieext(ie)
-     +                  ,(ipext(nen3v(ii,ie)),ii=1,3)
+     +                  ,(ipext(kn(ii)),ii=1,3)
      +                  ,(hm3v(ii,ie),ii=1,3)
-     +                  ,areatr(ie)
+     +                  ,get_total_area_of_element(ie)
      +                  ,iarv(ie)
            write(6,*)
 	end if
@@ -315,12 +319,14 @@ c*****************************************************************
 c writes statistics on basin
 
 	use basin
+	use evgeom
 
 	implicit none
 
 	logical bnomin		!do not compute minimum distance
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	integer imin,imax
 	real area,amin,amax,atot
         real vtot
@@ -335,9 +341,8 @@ c writes statistics on basin
 	real dtot,dptot
 	real hk
 	real, parameter :: hflag = -999.
+	real, parameter :: high = 1.e+20
         integer i,k1,k2
-
-	real areatr
 
 c-----------------------------------------------------------------
 c area code
@@ -385,26 +390,27 @@ c-----------------------------------------------------------------
 c area
 c-----------------------------------------------------------------
 
-	amin = areatr(1)
-	amax = amin
+	amin = high
+	amax = 0.
 	atot = 0.
         vtot = 0.
 	aptot = 0.
         vptot = 0.
 
 	do ie=1,nel
-	  area = areatr(ie)
+	  call get_vertex_area_of_element(ie,n,kn,area)
+	  area = n * area
 	  atot = atot + area
 	  amin = min(amin,area)
 	  amax = max(amax,area)
           h = 0.
 	  bflag = .false.
-          do ii=1,3
+          do ii=1,n
 	    hk = hm3v(ii,ie)
             h = h + hk
 	    bflag = hk == hflag
           end do
-	  h = h / 3.
+	  h = h / n
 	  if( bflag ) h = 0.
           vtot = vtot + area * h
 	  if( h .gt. 0. ) then		!only positive depths
@@ -444,15 +450,16 @@ c-----------------------------------------------------------------
 	dymax = 0.
 
 	do ie=1,nel
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    x(ii) = xgv(k)
 	    y(ii) = ygv(k)
 	  end do
-	  xmin = min(x(1),x(2),x(3))
-	  xmax = max(x(1),x(2),x(3))
-	  ymin = min(y(1),y(2),y(3))
-	  ymax = max(y(1),y(2),y(3))
+	  xmin = minval(x(1:n))
+	  xmax = maxval(x(1:n))
+	  ymin = minval(y(1:n))
+	  ymax = maxval(y(1:n))
 	  dxmax = max(dxmax,xmax-xmin)
 	  dymax = max(dymax,ymax-ymin)
 	end do
@@ -463,15 +470,16 @@ c-----------------------------------------------------------------
 c depth
 c-----------------------------------------------------------------
 
-	amin = 999999.
-	amax = -amin
+	amin = high
+	amax = -high
 
 	do ie=1,nel
+	  n = basin_get_vertex_of_element(ie)
 	  h = 0
-	  do ii=1,3
+	  do ii=1,n
 	    h = h + hm3v(ii,ie)
 	  end do
-	  h = h / 3.
+	  h = h / n
 	  amin = min(amin,h)
 	  amax = max(amax,h)
 	end do
@@ -530,6 +538,7 @@ c writes frequency distribution of depth
 
 	use mod_depth
 	use basin
+	use evgeom
 
 	implicit none
 
@@ -544,8 +553,6 @@ c writes frequency distribution of depth
 
 	double precision freqa(0:ndim)
 	double precision freqv(0:ndim)
-
-	real areatr
 
 c-----------------------------------------------------------------
 c area code
@@ -577,7 +584,7 @@ c-----------------------------------------------------------------
 
 	do ie=1,nel
 	  h = hev(ie)
-	  area = areatr(ie)
+	  area = get_total_area_of_element(ie)
 	  vol = area * h
 	  ih = (hmax-h)/dh
 	  if( ih .lt. 0 .or. ih .gt. imax ) then
@@ -616,35 +623,6 @@ c-----------------------------------------------------------------
 	write(6,*) 'frequency curve written to file areavol.dat'
 
 	end
-
-c*******************************************************************
-
-        function areatr(ie)
-
-c determination of area of element
-c
-c ie            number of element (internal)
-c areatr        element area (return value)
-
-	use basin
-
-	real areatr
-	integer ie
-
-	integer ii,i1,i2,k1,k2
-	double precision f,x(3),y(3)
-
-        do ii=1,3
-          k=nen3v(ii,ie)
-	  x(ii) = xgv(k)
-	  y(ii) = ygv(k)
-        end do
-
-	f = (x(2)-x(1))*(y(3)-y(1)) - (x(3)-x(1))*(y(2)-y(1))
-
-        areatr = f / 2.D0
-
-        end
 
 c*******************************************************************
 
@@ -828,7 +806,6 @@ c writes statistics on grid quality
 	integer iangle(0:18)
 
 	integer ieext,ipext
-	real areatr
 
 c-----------------------------------------------------------------
 c initialization
@@ -971,7 +948,6 @@ c writes statistics on basin
         integer icount(ndim)
         integer count(nkn)
 
-        real areatr
         integer ipext
 
         eps = 1.e-5
@@ -988,8 +964,9 @@ c-----------------------------------------------------------------
         end do
 
         do ie=1,nel
-          do ii=1,3
-            k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
+            k = kn(ii)
             count(k) = count(k) + 1
           end do
         end do
@@ -1095,23 +1072,25 @@ c*******************************************************************
         implicit none
 
         logical bstop
-        integer ie,ii,iii,k,k1
+        integer ie,ii,iii,k,k1,n
+	integer kn(3)
 
         bstop = .false.
 
         !write(6,*) 'node_test ... ',nel,nkn
 
         do ie=1,nel
-          do ii=1,3
-            k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
+            k = kn(ii)
             if( k .le. 0 ) then
                 write(6,*) ie,ii,k
                 bstop = .true.
             end if
-            iii = mod(ii,3) + 1
-            k1 = nen3v(iii,ie)
+            iii = mod(ii,n) + 1
+            k1 = kn(iii)
             if( k .eq. k1 ) then
-                write(6,*) ie,(nen3v(iii,ie),iii=1,3)
+                write(6,*) ie,(kn(iii),iii=1,3)
                 bstop = .true.
             end if
           end do
@@ -1133,7 +1112,8 @@ c*******************************************************************
 
         implicit none
 
-        integer ie,ii,k
+        integer ie,ii,k,n
+	integer kn(3)
         double precision xm,ym,hm
 
 	open(1,file='depth.grd',status='unknown',form='formatted')
@@ -1141,18 +1121,20 @@ c*******************************************************************
 
         do ie=1,nel
 
+	  call basin_get_vertex_nodes(ie,n,kn)
+
           xm = 0.
           ym = 0.
           hm = 0.
-          do ii=1,3
-            k = nen3v(ii,ie)
+          do ii=1,n
+            k = kn(ii)
             xm = xm + xgv(k)
             ym = ym + ygv(k)
             hm = hm + hm3v(ii,ie)
           end do
-          xm = xm / 3.
-          ym = ym / 3.
-          hm = hm / 3.
+          xm = xm / n
+          ym = ym / n
+          hm = hm / n
 
           write(2,*) xm,ym,hm
           write(1,1000) 1,ie,0,xm,ym,hm

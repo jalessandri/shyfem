@@ -27,7 +27,7 @@ c
 	implicit none
 
 	logical bnohydro
-	integer k,n,i,ie,ii,m,l,iii
+	integer k,n,i,ie,ii,m,l,iii,nv
 	integer kn(3),ki,kj,j
 	integer kic,kjc,kijc,iiis,iiie
 	integer ipp,ipp0
@@ -71,15 +71,13 @@ c
 	j2coo = 0
 
 	do ie=1,nel
-	  do ii=1,3
-	    kn(ii) = nen3v(ii,ie)
-	  end do
-	  do i=1,3
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do i=1,nv
 	    ki = kn(i)				!row
 	    ipp0 = ntg(ki-1)			!last entry in row ki-1
 	    n = ng(ki)				!entries in row ki
 	    nodes(1:n) = iorder(1:n,ki)		!nodes of row ki
-	    do j=1,3
+	    do j=1,nv
 	      kj = kn(j)			!col
 	      do m=1,n
 	        if( nodes(m) == kj ) exit	!find kj in nodes
@@ -109,12 +107,10 @@ c
 	back3coo = -88
 
 	do ie=1,nel
-	  do ii=1,3
-	    kn(ii) = nen3v(ii,ie)
-	  end do
-	  do i=1,3
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do i=1,nv
 	    ki = kn(i)				!row
-	    do j=1,3
+	    do j=1,nv
 	      kj = kn(j)			!col
 	      do l=1,nlv
 		ipp = loccoo3d(i,j,kn,l,ie)
@@ -195,7 +191,7 @@ c
 
 	implicit none
 
-	integer ie,ii,k,i,j,l,ipp
+	integer ie,ii,k,i,j,l,ipp,nv
 	integer kn(3)
 
 	integer loccoo3d
@@ -205,10 +201,8 @@ c
 !------------------------------------------------------------------
 
 	do ie=1,nel
-	  do ii=1,3
-	    kn(ii) = nen3v(ii,ie)
-	  end do
-	  do i=1,3
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do i=1,nv
 	      do l=1,nlv
 		ipp = loccoo3d(i,i,kn,l,ie)
 	        if( c3coo(ipp) == 0. ) then
@@ -242,6 +236,7 @@ c
 ! construct pointers for co matrix
 
 	use mod_system
+	use basin
 
 	implicit none
 
@@ -253,16 +248,18 @@ c
 	integer ip(ndim)		!row index of non zero element (return)
 	integer jp(ndim)		!col index of non zero element (return)
 
-	integer k,m,n,ie,ii,ii1,k1,k2
+	integer k,m,n,ie,ii,ii1,k1,k2,nv
+	integer kn(3)
 
 	n = 0
 	iijp = 0
 
 	do ie=1,nnel
-	  do ii=1,3
-	    k1 = nnen3v(ii,ie)
-	    ii1 = mod(ii,3) + 1
-	    k2 = nnen3v(ii1,ie)
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
+	    k1 = kn(ii)
+	    ii1 = mod(ii,nv) + 1
+	    k2 = kn(ii1)
 	    call coo_init_insert(k1,k2,nnkn,mmbw,iijp,n)	!out of diagonal
 	    call coo_init_insert(k1,k1,nnkn,mmbw,iijp,n)	!in diagonal
 	  end do

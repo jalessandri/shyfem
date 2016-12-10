@@ -83,7 +83,8 @@ c interpolation on squares
 	real dp(np)
 	real ht(max(nkn,nel))
 
-	integer ie,ii,k
+	integer ie,ii,k,nv
+	integer kn(3)
 	integer netot,nnone
 	integer imax
 	real x,y,d
@@ -151,12 +152,13 @@ c-----------------------------------------------------------------
 
 	  do ie=1,nel
 	    if( .not. ok(ie) ) then
-	      do ii=1,3
-	        k = nen3v(ii,ie)
+	      call basin_get_vertex_nodes(ie,nv,kn)
+	      do ii=1,nv
+	        k = kn(ii)
 	        xt(ii) = xgv(k)
 	        yt(ii) = ygv(k)
 	      end do
-	      if( inconvex(3,xt,yt,x,y) ) then
+	      if( inconvex(nv,xt,yt,x,y) ) then
 	        hev(ie) = hev(ie) + d
 	        ihev(ie) = ihev(ie) + 1
 	      end if
@@ -190,16 +192,17 @@ c-----------------------------------------------------------------
 	 netot = 0
 	 do ie=1,nel
 	  if( .not. ok(ie) ) then
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    call basin_get_vertex_nodes(ie,nv,kn)
+	    do ii=1,nv
+	      k = kn(ii)
 	      xt(ii) = xgv(k)
 	      yt(ii) = ygv(k)
 	    end do
 
-	    xmin = min(xt(1),xt(2),xt(3))
-	    ymin = min(yt(1),yt(2),yt(3))
-	    xmax = max(xt(1),xt(2),xt(3))
-	    ymax = max(yt(1),yt(2),yt(3))
+	    xmin = minval(xt(1:nv))
+	    ymin = minval(yt(1:nv))
+	    xmax = maxval(xt(1:nv))
+	    ymax = maxval(yt(1:nv))
 
 	    fact = 0.5*i
 	    dx = xmax - xmin
@@ -478,7 +481,8 @@ c prepares xt,yt,at,ht on nodes
 c if ufact > 0: use as factor times area of elem/node
 c if ufact < 0: use it directly as sigma
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	real area,x0,y0,fact,sigma2
 	real x(3),y(3)
 
@@ -490,11 +494,14 @@ c if ufact < 0: use it directly as sigma
 
 	do ie=1,nel
 
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    x(ii) = xgv(k)
 	    y(ii) = ygv(k)
 	  end do
+
+ggu
 
 	  area = areat(x(1),y(1),x(2),y(2),x(3),y(3))
 	  call centert(x(1),y(1),x(2),y(2),x(3),y(3),x0,y0)

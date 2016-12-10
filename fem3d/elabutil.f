@@ -424,20 +424,22 @@ c averages vertically
         real hev(nel)
         real hkv(nkn)
 
-        integer k,ie,ii
+        integer k,ie,ii,n
         real h,hm
 
 	hkv = -huge(1.)
 
         do ie=1,nel
+	  n = 3
+	  if( nen3v(3,ie) == 0 ) n = 2
 	  hm = 0.
-          do ii=1,3
+          do ii=1,n
             k = nen3v(ii,ie)
             h = hm3v(ii,ie)
             hkv(k) = max(hkv(k),h)
 	    hm = hm + h
           end do
-	  hev(ie) = hm / 3.
+	  hev(ie) = hm / n
         end do
 
         end
@@ -456,12 +458,14 @@ c averages vertically
         real hev(nel)
         real hkv(nkn)
 
-        integer k,ie,ii
+        integer k,ie,ii,n
         real h
 
         do ie=1,nel
           h = hev(ie)			!old way
-          do ii=1,3
+	  n = 3
+	  if( nen3v(3,ie) == 0 ) n = 2
+          do ii=1,n
             k = nen3v(ii,ie)
             h = hm3v(ii,ie)		!new way
             hkv(k) = max(hkv(k),h)
@@ -594,13 +598,15 @@ c***************************************************************
 	integer ilhv(nel)
 	integer ilhkv(nkn)
 
-	integer ie,ii,k,l
+	integer ie,ii,k,l,n
 
 	ilhkv = 0
 
 	do ie=1,nel
 	  l = ilhv(ie)
-	  do ii=1,3
+	  n = 3
+	  if( nen3v(3,ie) == 0 ) n = 2
+	  do ii=1,n
 	    k = nen3v(ii,ie)
 	    ilhkv(k) = max(l,ilhkv(k))
 	  end do
@@ -621,13 +627,15 @@ c create ilhv -> result is not exact and must be adjusted
 	integer ilhkv(nkn)
 	integer ilhv(nel)
 
-	integer ie,ii,k,lmax
+	integer ie,ii,k,lmax,n
 
 	ilhv = 0
 
 	do ie=1,nel
 	  lmax = 0
-	  do ii=1,3
+	  n = 3
+	  if( nen3v(3,ie) == 0 ) n = 2
+	  do ii=1,n
 	    k = nen3v(ii,ie)
 	    lmax = max(lmax,ilhkv(k))
 	  end do

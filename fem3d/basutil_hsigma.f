@@ -77,7 +77,8 @@ c checks for continuous depth
 	integer idm
 	integer idp
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	real h,hm
 
         idm = 0
@@ -85,9 +86,10 @@ c checks for continuous depth
 
         do ie=1,nel
           hm = hev(ie)
-          do ii=1,3
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
             h = hm3v(ii,ie)
-            k = nen3v(ii,ie)
+            k = kn(ii)
             if( abs(hkv(k)-h) .gt. 1.e-3 ) then
               if( hm .lt. hsigma .and. h .ne. hsigma ) then
                 idm = idm + 1
@@ -147,7 +149,8 @@ c checks and adjusts hsigma crossing
         integer iadjust
 
         logical berror,bdebug
-        integer k,ie,ii
+        integer k,ie,ii,n
+	integer kn(3)
         integer ihmin,ihmax
         real h,hm
         real f(3)
@@ -164,7 +167,8 @@ c checks and adjusts hsigma crossing
         do ie=1,nel
           ihmin = 0
           ihmax = 0
-          do ii=1,3
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
             h = hm3v(ii,ie)
             if( h .lt. hsigma ) then
               ihmin = ihmin + 1
@@ -177,17 +181,18 @@ c checks and adjusts hsigma crossing
             if(bdebug) write(6,*) 'before ',ie,(hm3v(ii,ie),ii=1,3)
             call adjust_for_hybrid(hsigma,hm3v(1,ie),f)
             if(bdebug) write(6,*) 'after  ',ie,(hm3v(ii,ie),ii=1,3)
-            do ii=1,3
-              k = nen3v(ii,ie)
+            do ii=1,n
+              k = kn(ii)
               v1v(k) = v1v(k) + f(ii)
             end do
           end if
         end do
 
         do ie=1,nel
-          do ii=1,3
+	  call basin_get_vertex_nodes(ie,n,kn)
+          do ii=1,n
             h = hm3v(ii,ie)
-            k = nen3v(ii,ie)
+            k = kn(ii)
 	    if( v1v(k) .ne. 0. ) hm3v(ii,ie) = hsigma
           end do
         end do

@@ -514,7 +514,7 @@ c function
 	    call basin_get_vertex_nodes(ie,n,kn)
 	    if( n == 2 ) cycle
 	    do i=1,n
-		kk=nen3v(i,ie)
+		kk=kn(i)
 		x(i)=xgv(kk)
 		y(i)=ygv(kk)
 	    end do

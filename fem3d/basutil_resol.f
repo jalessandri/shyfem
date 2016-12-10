@@ -97,7 +97,8 @@ c computes horizontal resolution
 
 	real cvres(nkn)
 
-	integer k,ie,ii,iii,k1,k2
+	integer k,ie,ii,iii,k1,k2,n
+	integer kn(3)
 	real dd
 	real cvaux(nkn)
 
@@ -107,10 +108,11 @@ c computes horizontal resolution
 	cvaux = 0.
 	
 	do ie=1,nel
-	  do ii=1,3
-	    iii = 1 + mod(ii,3)
-	    k1 = nen3v(ii,ie)
-	    k2 = nen3v(iii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    iii = 1 + mod(ii,n)
+	    k1 = kn(ii)
+	    k2 = kn(iii)
 	    dd = dist(k1,k2)
 	    cvres(k1) = cvres(k1) + dd
 	    cvaux(k1) = cvaux(k1) + 1.
@@ -119,9 +121,7 @@ c computes horizontal resolution
 	  end do
 	end do
 
-	do k=1,nkn
-	  if( cvaux(k) .gt. 0. ) cvres(k) = cvres(k) / cvaux(k)
-	end do
+	where( cvaux > 0. ) cvres = cvres / cvaux
 
 	end
 

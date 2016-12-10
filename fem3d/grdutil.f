@@ -9,7 +9,8 @@
 	implicit none
 
 	integer nk,ne,nl,nne,nnl
-	integer k,ie,ii,ibase,n,i
+	integer k,ie,ii,ibase,n,i,nv
+	integer kn(3)
 	integer nhn,nhe
 	real flag
 	logical bdebug
@@ -98,14 +99,13 @@
 
 	if( nhn == 0 ) then
 	  do ie=1,ne
-	    do ii=1,3
-	      hm3v(ii,ie) = hhev(ie)
-	    end do
+	    hm3v(:,ie) = hhev(ie)
 	  end do
 	else
 	  do ie=1,ne
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    call basin_get_vertex_nodes(ie,nv,kn)
+	    do ii=1,nv
+	      k = kn(ii)
 	      hm3v(ii,ie) = hhnv(k)
 	    end do
 	  end do
@@ -143,7 +143,8 @@
 	implicit none
 
 	integer nk,ne,nl,nne,nnl
-	integer k,ie,ii,ibase,n
+	integer k,ie,ii,ibase,n,nv
+	integer kn(3)
 	integer nhn,nhe
 	real flag
 	logical bdebug
@@ -191,9 +192,10 @@
 	ipntev(0) = 0
 	do ie=1,nel
 	  ibase = ipntev(ie-1)
-	  do ii=1,3
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
 	    ibase = ibase + 1
-	    inodev(ibase) = nen3v(ii,ie)
+	    inodev(ibase) = kn(ii)
 	  end do
 	  ipntev(ie) = ibase
 	end do
@@ -211,15 +213,16 @@
 	do ie=1,nel
 	  he = hm3v(1,ie)
 	  hm = 0.
-	  do ii=1,3
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
 	    h = hm3v(ii,ie)
-	    k = nen3v(ii,ie)
+	    k = kn(ii)
 	    if( hhnv(k) == flag ) hhnv(k) = h
 	    if( hhnv(k) /= h ) bunique = .false.
 	    if( he /= h ) bconst = .false.
 	    hm = hm + h
 	  end do
-	  hm = hm / 3.
+	  hm = hm / nv
 	  hhev(ie) = hm
 	end do
 
