@@ -692,7 +692,8 @@ c**********************************************************
 	implicit none
 
 	logical bdry
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 
 	call qstart
 	call bash(0)
@@ -700,8 +701,9 @@ c**********************************************************
         call qcomm('Plotting barene')
 	do ie=1,nel
 	  bdry = .false.
-	  do ii=1,3
-	    k = nen3v(ii,ie)
+	  call basin_get_vertex_nodes(ie,n,kn)
+	  do ii=1,n
+	    k = kn(ii)
 	    if( zenv(ii,ie) .ne. znv(k) ) bdry = .true.
 	  end do
 	  if( bdry ) then
@@ -1483,11 +1485,7 @@ c**************************************************************
 
 	if( color .lt. 0. ) return
 
-	do ii=1,3
-	  k = nen3v(ii,ie)
-	  xp(ii) = xgv(k)
-	  yp(ii) = ygv(k)
-	end do
+	call getexy(ie,xp,yp)
 
 	call qsetc(color)
 	call qafill(3,xp,yp)
@@ -1671,7 +1669,8 @@ c compute elemental values vev()
 	real vev(nel)
 	logical bwater(nel)
 
-	integer ie,ii,k,iflag
+	integer ie,ii,k,iflag,n
+	integer kn(3)
 	real sum,flag
 
         call get_flag(flag)
@@ -1680,13 +1679,14 @@ c compute elemental values vev()
 	  if( bwater(ie) ) then
             sum = 0.
 	    iflag = 0
-	    do ii=1,3
-	      k = nen3v(ii,ie)
+	    call basin_get_vertex_nodes(ie,n,kn)
+	    do ii=1,n
+	      k = kn(ii)
 	      sum = sum + vnv(k)
 	      if( vnv(k) > flag ) iflag = iflag + 1
 	    end do
-            vev(ie) = sum / 3.
-	    if( iflag .ne. 3 ) vev(ie) = flag
+            vev(ie) = sum / n
+	    if( iflag .ne. n ) vev(ie) = flag
           else
             vev(ie) = 0.
 	  end if
@@ -1701,6 +1701,7 @@ c*****************************************************************
 c compute nodal values vnv()
 
 	use basin
+	use evgeom
 
 	implicit none
 
@@ -1708,8 +1709,9 @@ c compute nodal values vnv()
         real vnv(nkn)
 	logical bwater(nel)
 
-	integer ie,ii,k
-	real r,flag
+	integer ie,ii,k,n
+	integer kn(3)
+	real r,flag,area
 	real v2v(nkn)
 
         call get_flag(flag)
@@ -1721,11 +1723,12 @@ c compute nodal values vnv()
 
 	do ie=1,nel
 	 if( bwater(ie) ) then
-	  do ii=1,3
+	  call get_vertex_area_of_element(ie,n,kn,area)
+	  do ii=1,n
 	    if( vev(ie) > flag ) then
-	      k = nen3v(ii,ie)
-	      vnv(k) = vnv(k) + vev(ie)
-	      v2v(k) = v2v(k) + 1.
+	      k = kn(ii)
+	      vnv(k) = vnv(k) + area*vev(ie)
+	      v2v(k) = v2v(k) + area
 	    end if
 	  end do
 	 end if
@@ -1991,7 +1994,7 @@ c plots node values
 	do ie=1,nel
 	  h = sum(hm3v(:,ie))/3.
 	  if( bwater(ie) .and. h > hgray ) cycle
-	  call set_xy(ie,x,y)
+	  call getexy(ie,x,y)
 	  call qafill(3,x,y)
 	end do
 

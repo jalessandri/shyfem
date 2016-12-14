@@ -260,7 +260,8 @@ c	4: net in gray (for scalar and velocities - use bsgray)
 	real xmin,ymin,xmax,ymax
 	common /bamima/ xmin,ymin,xmax,ymax
 
-	integer ie,kn,ii,k
+	integer ie,ii,k,kk,n
+	integer kn(3)
 	real gray
 
 	real getpar
@@ -279,10 +280,10 @@ c	4: net in gray (for scalar and velocities - use bsgray)
 	   call qgray(gray)
 	   do k=1,nkn
 	    if( kantv(1,k) .ne. 0 ) then
-	      kn=kantv(1,k)
-	      if( kn .gt. k ) call qline(xgv(k),ygv(k),xgv(kn),ygv(kn))
-	      kn=kantv(2,k)
-	      if( kn .gt. k ) call qline(xgv(k),ygv(k),xgv(kn),ygv(kn))
+	      kk=kantv(1,k)
+	      if( kk .gt. k ) call qline(xgv(k),ygv(k),xgv(kk),ygv(kk))
+	      kk=kantv(2,k)
+	      if( kk .gt. k ) call qline(xgv(k),ygv(k),xgv(kk),ygv(kk))
 	    end if
 	   end do
 	  end if
@@ -300,11 +301,12 @@ c	4: net in gray (for scalar and velocities - use bsgray)
 	  end if
 
 	  do ie=1,nel
-	    kn = nen3v(3,ie)
-	    call qmove(xgv(kn),ygv(kn))
-	    do ii=1,3
-	      kn = nen3v(ii,ie)
-	      call qplot(xgv(kn),ygv(kn))
+	    call basin_get_vertex_nodes(ie,n,kn)
+	    k = kn(n)
+	    call qmove(xgv(k),ygv(k))
+	    do ii=1,n
+	      k = kn(ii)
+	      call qplot(xgv(k),ygv(k))
 	    end do
 	  end do
 	else
@@ -368,15 +370,7 @@ c	positive: external    negative: internal
 
 	  call qtxtcc(0,0)
 	  do ie=1,nel
-	    x = 0.
-	    y = 0.
-	    do ii=1,3
-	      k = nen3v(ii,ie)
-	      x = x + xgv(k)
-	      y = y + ygv(k)
-	    end do
-	    x = x / 3.
-	    y = y / 3.
+	    call getexy(ie,x,y)
 	    iee = ie
 	    if( mode .gt. 0 ) iee = ieext(ie)
 	    i = ialfa(float(iee),s,-1,-1)

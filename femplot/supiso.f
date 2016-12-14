@@ -1051,39 +1051,19 @@ c returns x,y,val of element, and indication of flag values
         real f(3),x(3),y(3)     !return values of val,x,y
         integer inull           !total number of flags found
 
-	integer ii,kn
+	integer ii,k,n
+	integer kn(3)
 
 	inull = 0
 
-	do ii=1,3
-	    kn=nen3v(ii,ie)
-	    f(ii)=val(kn)
+	call basin_get_vertex_nodes(ie,n,kn)
+
+	do ii=1,n
+	    k = kn(ii)
+	    f(ii)=val(k)
 	    if( f(ii) .eq. flag ) inull = inull + 1
-	    x(ii)=xgv(kn)
-	    y(ii)=ygv(kn)
-	end do
-
-	end
-
-c***************************************************************
-
-	subroutine set_xy(ie,x,y)
-
-c returns x,y of element
-
-	use basin
-
-        implicit none
-
-        integer ie              !element for which info is needed
-        real x(3),y(3)          !return values of x,y
-
-	integer ii,kn
-
-	do ii=1,3
-	    kn=nen3v(ii,ie)
-	    x(ii)=xgv(kn)
-	    y(ii)=ygv(kn)
+	    x(ii)=xgv(k)
+	    y(ii)=ygv(k)
 	end do
 
 	end

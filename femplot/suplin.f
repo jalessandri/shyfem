@@ -1263,6 +1263,8 @@ c finds elements along line given by nodes
 c
 c deepest element is chosen
 
+	use basin, only : basin_get_vertex_nodes
+
 	implicit none
 
 	integer n
@@ -1280,7 +1282,8 @@ c deepest element is chosen
 	integer bsmt		!factor for using smooth bottom
 
 	logical bsigma,berror,bsmooth
-	integer i,k1,k2,ie1,ie2,l
+	integer i,k1,k2,ie1,ie2,l,nv
+	integer kn(3)
 	integer ii,ie
 	integer nsigma
 	real hsigma
@@ -1315,9 +1318,10 @@ c------------------------------------------------------------------
 	  end if
 	  ie = elems(i)
 	  if( bsmooth .or. bsigma .and. hev(ie) .le. hsigma ) then
-	    do ii=1,3
-	      if( k1 .eq. nen3v(ii,ie) ) helems(1,i) = hkv(k1)
-	      if( k2 .eq. nen3v(ii,ie) ) helems(2,i) = hkv(k2)
+	    call basin_get_vertex_nodes(ie,nv,kn)
+	    do ii=1,nv
+	      if( k1 .eq. kn(ii) ) helems(1,i) = hkv(k1)
+	      if( k2 .eq. kn(ii) ) helems(2,i) = hkv(k2)
 	    end do
 	  else
 	    helems(1,i) = hev(ie)
