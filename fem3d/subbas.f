@@ -38,7 +38,7 @@ c***********************************************************
 
         implicit none
 
-	logical, parameter :: enable_1d = .false. !true if 1d needed
+	logical, parameter :: enable_1d = .true. !true if 1d needed
 
 	logical, save :: has_1d = .false.	!true if 1d found
 

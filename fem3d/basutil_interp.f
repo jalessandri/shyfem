@@ -95,7 +95,7 @@ c interpolation on squares
 	real xt(3), yt(3)
 	real xmin,ymin,xmax,ymax
 	real hmed
-	real fact,dx,dy
+	real fact,dx,dy,dxy
 	real flag
 	integer ihev(nel)
 	logical bmin
@@ -207,10 +207,11 @@ c-----------------------------------------------------------------
 	    fact = 0.5*i
 	    dx = xmax - xmin
 	    dy = ymax - ymin
-	    xmin = xmin - fact*dx
-	    ymin = ymin - fact*dy
-	    xmax = xmax + fact*dx
-	    ymax = ymax + fact*dy
+	    dxy = max(dx,dy)
+	    xmin = xmin - fact*dxy
+	    ymin = ymin - fact*dxy
+	    xmax = xmax + fact*dxy
+	    ymax = ymax + fact*dxy
 
 	    hmed = 0.
 	    ihmed = 0
@@ -468,6 +469,7 @@ c prepares xt,yt,at,ht on nodes
 
 	use mod_depth
 	use basin
+	use evgeom
 
 	implicit none
 
@@ -494,17 +496,10 @@ c if ufact < 0: use it directly as sigma
 
 	do ie=1,nel
 
-	  call basin_get_vertex_nodes(ie,n,kn)
-	  do ii=1,n
-	    k = kn(ii)
-	    x(ii) = xgv(k)
-	    y(ii) = ygv(k)
-	  end do
-
-ggu
-
-	  area = areat(x(1),y(1),x(2),y(2),x(3),y(3))
-	  call centert(x(1),y(1),x(2),y(2),x(3),y(3),x0,y0)
+	  call get_vertex_area_of_element(ie,n,kn,area)
+	  area = n * area
+	  call getexy(ie,x,y)
+	  call baric(ie,x0,y0)
 
 	  xt(ie) = x0
 	  yt(ie) = y0
@@ -524,6 +519,7 @@ c prepares xt,yt,at,ht on nodes
 
 	use mod_depth
 	use basin
+	use evgeom
 
 	implicit none
 
@@ -537,7 +533,8 @@ c prepares xt,yt,at,ht on nodes
 c if ufact > 0: use as factor times area of elem/node
 c if ufact < 0: use it directly as sigma
 
-	integer ie,ii,k
+	integer ie,ii,k,n
+	integer kn(3)
 	real area,fact,sigma2
 	real x(3),y(3)
 
@@ -552,15 +549,10 @@ c if ufact < 0: use it directly as sigma
 	end do
 
 	do ie=1,nel
+	  call get_vertex_area_of_element_kr(ie,n,kn,area)
 	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    x(ii) = xgv(k)
-	    y(ii) = ygv(k)
-	  end do
-	  area = areat(x(1),y(1),x(2),y(2),x(3),y(3))
-	  do ii=1,3
-	    k = nen3v(ii,ie)
-	    at(k) = at(k) + area / 3.
+	    k = kn(ii)
+	    at(k) = at(k) + area
 	  end do
 	end do
 

@@ -683,6 +683,7 @@ c then typls is used if given
 c else it is computed from grid
 
 	use basin, only : nkn,nel,ngr,mbw
+	use evgeom
 
 	implicit none
 
@@ -698,10 +699,10 @@ c else it is computed from grid
 
 	acu = 0.
 	do ie=1,nel
-	  ao = aomega_elem(ie)
-	  acu = acu + ao
+	  area = get_total_area_of_element(ie)
+	  acu = acu + area
 	end do
-	area = 24. * acu / nel		!a little bit bigger than one element
+	area = 2. * acu / nel		!a little bit bigger than one element
 
 	call spherical_fact(fact,afact)	!correct for spherical coordinates
 	dist = sqrt(area/afact)

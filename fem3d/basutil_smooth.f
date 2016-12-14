@@ -383,6 +383,7 @@ c deletes elements with depth lower then hmin
 
 	integer ind(nel)	!index for nodes/elements to substitute
 	integer rind(nel)	!reverse index
+	logical mask(nel)
 
 c-----------------------------------------
 c delete elements
@@ -413,7 +414,8 @@ c-----------------------------------------
 	  rind(k) = 0
 	end do
 
-	call create_node_indicator(.true.,hkv)
+	mask = .true.
+	call create_node_indicator(mask,hkv)
 
 	n = nkn
 	call determine_shift(n,ind,hkv,hmin)
