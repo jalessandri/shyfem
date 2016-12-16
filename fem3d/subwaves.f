@@ -821,6 +821,7 @@ c local
 	use evgeom
 	use levels
 	use basin
+	use mod_geom_dynamic
 
         implicit none
 
@@ -844,7 +845,7 @@ c local
         double precision bb(3),cc(3)
         double precision area
 	real ff,atop,acu
-        logical is_zeta_bound,is_boundary_node
+        logical is_zeta_bound
 
 c initialize
 

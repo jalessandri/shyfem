@@ -142,11 +142,11 @@ c----------------------------------------------------------------
 	  call makehkv(hkv)
 	  call line_read_nodes(file,nldim,n,nodes)
           bsmt = nint(getpar('bsmt'))
-	  call line_find_elements(n,nodes,nlv,nen3v,hev,hm3v,hlv
-     +			,elems,helems,lelems,lnodes,hkv,bsmt)
-	  call line_find_min_max(n,nodes,helems,lelems,xgv,ygv
+	  call line_find_elements(n,nodes,nlv,hev,hkv,hlv,bsmt
+     +					,elems,helems,lelems,lnodes)
+	  call line_find_min_max(n,nodes,helems,lelems
      +			,isphe,rlmax,rdmax,llmax,xy)
-	  call make_proj_dir(n,isphe,nodes,xgv,ygv,dxy)
+	  call make_proj_dir(n,nodes,isphe,dxy)
 
 	  bgrid = nint(getpar('ivgrid')) .ne. 0	!plot grid?
 	  ivert = nint(getpar('ivert'))	!type of vertical coordinate
@@ -946,17 +946,18 @@ c************************************************************************
 
 c************************************************************************
 
-	subroutine make_proj_dir(n,isphe,nodes,xgv,ygv,dxy)
+	subroutine make_proj_dir(n,nodes,isphe,dxy)
 
 c computes projection line for nodes
+
+	use basin
 
 	implicit none
 
 	integer n
-	integer isphe
 	integer nodes(n)
-	real xgv(1), ygv(1)
-	real dxy(2,n)			!direction of line (for projection)
+	integer isphe
+	real dxy(2,n)		!direction of line (for projection) (return)
 
 	integer i,i1,i2,k1,k2
 	real dx,dy,dd
@@ -1184,10 +1185,12 @@ c inserts scalar values into matrix section
 
 c************************************************************************
 
-	subroutine line_find_min_max(n,nodes,helems,lelems,xgv,ygv
+	subroutine line_find_min_max(n,nodes,helems,lelems
      +					,isphe,rlmax,rdmax,llmax,xy)
 
 c finds length and max depth of line
+
+	use basin
 
 	implicit none
 
@@ -1195,11 +1198,10 @@ c finds length and max depth of line
 	integer nodes(n)
 	real helems(2,n)	!depth in chosen elements
 	integer lelems(n)	!maximum layer in element
-	real xgv(1), ygv(1)	!coordinates
 	integer isphe		!spherical coords?
 	real rlmax,rdmax	!length and depth (return)
-	integer llmax		!maximum layer
-	real xy(n)		!distance of nodes from first node
+	integer llmax		!maximum layer (return)
+	real xy(n)		!distance of nodes from first node (return)
 
 	integer i,k1,k2
 	real dx,dy
@@ -1255,31 +1257,28 @@ c computes factor for transformation from spherical to cartesian coordinates
 
 c************************************************************************
 
-	subroutine line_find_elements(n,nodes,nlv,nen3v,hev,hm3v,hlv
-     +					,elems,helems,lelems,lnodes,hkv
-     +					,bsmt)
+	subroutine line_find_elements(n,nodes,nlv,hev,hkv,hlv,bsmt
+     +					,elems,helems,lelems,lnodes)
 
 c finds elements along line given by nodes
 c
 c deepest element is chosen
 
-	use basin, only : basin_get_vertex_nodes
+	use basin
 
 	implicit none
 
-	integer n
-	integer nodes(n)
+	integer n		!number of nodes in list
+	integer nodes(n)	!list of nodes
 	integer nlv		!number of layers
-	integer nen3v(3,1)	!element index
-	real hev(1)		!depth in elements
-	real hm3v(3,1)		!depth in elements (on vertices)
-	real hlv(1)		!layer structure
+	real hev(nel)		!depth in elements
+	real hkv(nkn)		!depth at nodes
+	real hlv(nlv)		!layer structure
+	integer bsmt		!factor for using smooth bottom
 	integer elems(n)	!element number of chosen elements (return)
 	real helems(2,n)	!depth in chosen elements (return)
 	integer lelems(n)	!layers in element (return)
 	integer lnodes(n)	!layers in node (return)
-	real hkv(1)		!layer structure
-	integer bsmt		!factor for using smooth bottom
 
 	logical bsigma,berror,bsmooth
 	integer i,k1,k2,ie1,ie2,l,nv

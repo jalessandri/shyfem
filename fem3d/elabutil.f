@@ -412,29 +412,28 @@
 	end module elabutil
 !====================================================
 
-        subroutine outfile_make_depth(nkn,nel,nen3v,hm3v,hev,hkv)
+        subroutine outfile_make_depth(hev,hkv)
 
 c averages vertically
 
+	use basin
+
         implicit none
 
-        integer nkn,nel
-        integer nen3v(3,nel)
-        real hm3v(3,nel)
         real hev(nel)
         real hkv(nkn)
 
         integer k,ie,ii,n
+	integer kn(3)
         real h,hm
 
 	hkv = -huge(1.)
 
         do ie=1,nel
-	  n = 3
-	  if( nen3v(3,ie) == 0 ) n = 2
+	  call basin_get_vertex_nodes(ie,n,kn)
 	  hm = 0.
           do ii=1,n
-            k = nen3v(ii,ie)
+            k = kn(ii)
             h = hm3v(ii,ie)
             hkv(k) = max(hkv(k),h)
 	    hm = hm + h
@@ -446,27 +445,26 @@ c averages vertically
 
 c***************************************************************
 
-        subroutine outfile_make_hkv(nkn,nel,nen3v,hm3v,hev,hkv)
+        subroutine outfile_make_hkv(hev,hkv)
 
 c averages vertically
 
+	use basin
+
         implicit none
 
-        integer nkn,nel
-        integer nen3v(3,nel)
-        real hm3v(3,nel)
         real hev(nel)
         real hkv(nkn)
 
         integer k,ie,ii,n
+	integer kn(3)
         real h
 
         do ie=1,nel
+	  call basin_get_vertex_nodes(ie,n,kn)
           h = hev(ie)			!old way
-	  n = 3
-	  if( nen3v(3,ie) == 0 ) n = 2
           do ii=1,n
-            k = nen3v(ii,ie)
+            k = kn(ii)
             h = hm3v(ii,ie)		!new way
             hkv(k) = max(hkv(k),h)
           end do

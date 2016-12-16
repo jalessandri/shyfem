@@ -21,7 +21,6 @@ c subroutine plobas
 c
 c subroutine elkdep(nkn,hkv)
 c subroutine eltype0(nel,iarv)
-c subroutine eldepth(nel,hm3v,auxv,color,title)
 c subroutine eltype(nel,iarv,color,title)
 c
 c subroutine plotel( ie , color )
@@ -1367,59 +1366,6 @@ c	  if( ia .ge. 3 .and. ia .le. 5 .or. ia .eq. 9 ) then	!inlets
 
 c**************************************************************
 
-	subroutine eldepth(nel,hm3v,auxv,color,title)
-
-	implicit none
-
-	integer nel
-	real hm3v(3,1)
-	real auxv(1)
-	real color(1)
-	character*(*) title
-
-	integer ii,ie
-	real hm
-
-	do ie=1,nel
-	  hm = 0.
-	  do ii=1,3
-	    hm = hm + hm3v(ii,ie)
-	  end do
-	  auxv(ie) = hm / 3.
-	end do
-
-	do ie=1,nel
-	  hm = auxv(ie)
-	  color(ie) = 1.
-	  if( hm .le. 0. ) color(ie) = 0.7
-	end do
-	call basplc(nel,color,'depth = 0.',title)
-
-	do ie=1,nel
-	  hm = auxv(ie)
-	  color(ie) = 1.
-	  if( hm .le. 0.2 ) color(ie) = 0.7
-	end do
-	call basplc(nel,color,'depth = 0.2',title)
-
-	do ie=1,nel
-	  hm = auxv(ie)
-	  color(ie) = 1.
-	  if( hm .le. 0.4) color(ie) = 0.7
-	end do
-	call basplc(nel,color,'depth = 0.4',title)
-
-	do ie=1,nel
-	  hm = auxv(ie)
-	  color(ie) = 1.
-	  if( hm .le. 0.6 ) color(ie) = 0.7
-	end do
-	call basplc(nel,color,'depth = 0.6',title)
-
-	end
-
-c**************************************************************
-
 	subroutine eltype(nel,iarv,color,title)
 
 	implicit none
@@ -1979,7 +1925,7 @@ c plots node values
 
 	implicit none
 
-	integer ie
+	integer ie,n
 	real dgray,hgray,h
 	real x(3),y(3)
 
@@ -1992,10 +1938,11 @@ c plots node values
 	call qgray(dgray)
 
 	do ie=1,nel
-	  h = sum(hm3v(:,ie))/3.
+	  h = basin_vertex_average_2d(ie,hm3v)
 	  if( bwater(ie) .and. h > hgray ) cycle
 	  call getexy(ie,x,y)
-	  call qafill(3,x,y)
+	  n = basin_get_vertex_of_element(ie)
+	  call qafill(n,x,y)
 	end do
 
 	call qgray(0.)

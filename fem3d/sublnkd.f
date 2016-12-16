@@ -26,22 +26,11 @@ c updates geometrical array (ieltv)
 
 	use mod_geom
 	use mod_geom_dynamic
-	use basin, only : nkn,nel,ngr,mbw
+	use basin
 
         implicit none
 
-c local
-        integer n
-
-c-------------------------------------------------------------
-c update ieltv
-c-------------------------------------------------------------
-
         call update_ielt(nel,inodv,ieltv)
-
-c-------------------------------------------------------------
-c end of routine
-c-------------------------------------------------------------
 
 	end
 
@@ -140,69 +129,6 @@ c now mark open boundary nodes
         write(6,*) 'boundary flag : ',inodv(k)
         stop 'error stop setnod : open boundary node'
         end
-
-c****************************************************************
-c****************************************************************
-c****************************************************************
-c****************************************************************
-
-	function is_internal_node(k)
-
-	use mod_geom_dynamic
-
-	implicit none
-
-	logical is_internal_node
-	integer k
-
-	is_internal_node = inodv(k) .eq. 0
-
-	end
-
-c****************************************************************
-
-	function is_boundary_node(k)
-
-	use mod_geom_dynamic
-
-	implicit none
-
-	logical is_boundary_node
-	integer k
-
-	is_boundary_node = inodv(k) .ne. 0 .and. inodv(k) .ne. -2
-
-	end
-
-c****************************************************************
-
-	function is_open_boundary_node(k)
-
-	use mod_geom_dynamic
-
-	implicit none
-
-	logical is_open_boundary_node
-	integer k
-
-	is_open_boundary_node = inodv(k) .gt. 0
-
-	end
-
-c****************************************************************
-
-	function is_dry_node(k)
-
-	use mod_geom_dynamic
-
-	implicit none
-
-	logical is_dry_node
-	integer k
-
-	is_dry_node = inodv(k) .eq. -2
-
-	end
 
 c****************************************************************
 c****************************************************************

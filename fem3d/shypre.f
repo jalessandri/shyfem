@@ -136,8 +136,8 @@ c--------------------------------------------------------
 	call grd_get_params(nk,ne,nl,nne,nnl)
 	write(6,*) 'grid info: ',nk,ne,nl
 
-	if( nk == 0 .or. ne == 0 ) then
-	  write(6,*) 'nk,ne: ',nk,ne
+	if( nk == 0 .or. ( ne == 0 .and. nl == 0 ) ) then
+	  write(6,*) 'nk,ne,nl: ',nk,ne,nl
 	  stop 'error stop shypre: no nodes or elements in basin'
 	end if
 
@@ -147,22 +147,24 @@ c--------------------------------------------------------
 c allocate arrays
 c--------------------------------------------------------
 
-	allocate(ipdex(nk), iedex(ne))
-	allocate(iphv(nk), kphv(nk))
-	allocate(iphev(ne), iaux(ne))
-	allocate(neaux(3,ne))
-	allocate(raux(ne))
-	allocate(hev(ne))
-	allocate(hkv(nk))
-	allocate(rphv(nk))
-	allocate(ng(nk))
-	allocate(kvert(2,nk))
+	allocate(ipdex(nkn), iedex(nel))
+	allocate(iphv(nkn), kphv(nkn))
+	allocate(iphev(nel), iaux(nel))
+	allocate(neaux(3,nel))
+	allocate(raux(nel))
+	allocate(hev(nel))
+	allocate(hkv(nkn))
+	allocate(rphv(nkn))
+	allocate(ng(nkn))
+	allocate(kvert(2,nkn))
 
 c--------------------------------------------------------
 c handle depth
 c--------------------------------------------------------
 
-	call grd_get_depth(nk,ne,hkv,hev)
+	call grd_get_depth(nkn,nel,hkv,hev)
+
+ggu
 
 	nknh = 0
 	do k=1,nkn

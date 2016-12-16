@@ -1,4 +1,7 @@
+
+!==================================================================
         module mod_geom_dynamic
+!==================================================================
 
         implicit none
 
@@ -9,9 +12,15 @@
 	integer, allocatable, save :: iwetv(:)
 	integer, allocatable, save :: inodv(:)
 
-	contains
+! inodv:
+!		0	internal
+!		> 0	open boundary node
+!		-1	boundary node
+!		-2	dry
 
-!******************************************************
+!==================================================================
+	contains
+!==================================================================
 
 	subroutine mod_geom_dynamic_init(nkn,nel)
 
@@ -46,13 +55,51 @@
 	
        	end subroutine mod_geom_dynamic_init	
 
-!*****************************************************
+!******************************************************************
 
+        pure function is_internal_node(k)
+
+        logical				:: is_internal_node
+        integer, intent(in)		:: k
+
+        is_internal_node = inodv(k) .eq. 0
+
+        end
+
+!******************************************************************
+
+        pure function is_boundary_node(k)
+
+        logical				:: is_boundary_node
+        integer, intent(in)		:: k
+
+        is_boundary_node = inodv(k) .ne. 0 .and. inodv(k) .ne. -2
+
+        end
+
+!******************************************************************
+
+        pure function is_open_boundary_node(k)
+
+        logical				:: is_open_boundary_node
+        integer, intent(in)		:: k
+
+        is_open_boundary_node = inodv(k) .gt. 0
+
+        end
+
+!******************************************************************
+
+        pure function is_dry_node(k)
+
+        logical				:: is_dry_node
+        integer, intent(in)		:: k
+
+        is_dry_node = inodv(k) .eq. -2
+
+        end
+
+!==================================================================
 	end module mod_geom_dynamic
-
-
-	
-
-	
-
+!==================================================================
 

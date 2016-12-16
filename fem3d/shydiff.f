@@ -152,7 +152,7 @@
 	call init_sigma_info(nlv,hlv)
 
 	call shy_make_area
-	call outfile_make_depth(nkn,nel,nen3v,hm3v,hev,hkv)
+	call outfile_make_depth(hev,hkv)
 
 	if( bverb ) call depth_stats(nkn,nlvdi,ilhkv)
 

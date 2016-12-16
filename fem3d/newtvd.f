@@ -86,8 +86,9 @@ c computes gradients for scalar cc (average gradient information)
 	real gy(nlvddi,nkn)
 	real aux(nlvddi,nkn)
         
-        integer k,l,ie,ii,lmax
-	real b,c,area
+        integer k,l,ie,ii,lmax,n
+	integer kn(3)
+	real b(3),c(3),area
 	real ggx,ggy
 
 	gx = 0.
@@ -95,16 +96,13 @@ c computes gradients for scalar cc (average gradient information)
 	aux = 0.
 
         do ie=1,nel
-          area=ev(10,ie) 
+	  call get_vertex_area_of_element(ie,n,kn,b,c,area)
 	  lmax = min(nlvddi,ilhv(ie))
 	  do l=1,lmax
-            do ii=1,3
-              k=nen3v(ii,ie)
-	      if( k == 0 ) cycle
-              b=ev(ii+3,ie)
-              c=ev(ii+6,ie)
-              gx(l,k)=gx(l,k)+cc(l,k)*b*area
-              gy(l,k)=gy(l,k)+cc(l,k)*c*area
+            do ii=1,n
+              k=kn(ii)
+              gx(l,k)=gx(l,k)+cc(l,k)*b(ii)*area
+              gy(l,k)=gy(l,k)+cc(l,k)*c(ii)*area
               aux(l,k)=aux(l,k)+area
 	    end do
           end do
@@ -135,7 +133,8 @@ c computes concentration of upwind node (using info on upwind node)
         real cv(nlvdi,nkn)
 
         integer ienew
-        integer ii,k
+        integer ii,k,n
+	integer kn(3)
         real xu,yu
         real c(3)
 
@@ -146,8 +145,10 @@ c computes concentration of upwind node (using info on upwind node)
         if( ienew .le. 0 ) return
 	if( ilhv(ienew) .lt. l ) return		!TVD for 3D
 
-        do ii=1,3
-          k = nen3v(ii,ienew)
+	call basin_get_vertex_nodes(ienew,n,kn)
+
+        do ii=1,n
+          k = kn(ii)
           c(ii) = cv(l,k)
         end do
 
@@ -282,7 +283,8 @@ c sets position and element of upwind node
 	integer ie
 
 	logical bdebug
-        integer ii,j,k
+        integer ii,j,k,n
+	integer kn(3)
         integer ienew,ienew2
 	real x,y
 	real r
@@ -297,16 +299,17 @@ c sets position and element of upwind node
         !do ie=1,nel
 
           if ( bsphe ) call ev_make_center(ie,dlon0,dlat0)
+	  call basin_get_vertex_nodes(ie,n,kn)
 
-          do ii=1,3
+          do ii=1,n
 
-            k = nen3v(ii,ie)
+            k = kn(ii)
             xc = xgv(k)
             yc = ygv(k)
 	    if ( bsphe ) call ev_g2c(xc,yc,xc,yc,dlon0,dlat0)
 
-            j = mod(ii,3) + 1
-            k = nen3v(j,ie)
+            j = mod(ii,n) + 1
+            k = kn(j)
             xd = xgv(k)
             yd = ygv(k)
 	    if ( bsphe ) call ev_g2c(xd,yd,xd,yd,dlon0,dlat0)
@@ -330,8 +333,8 @@ c sets position and element of upwind node
             tvdupy(j,ii,ie) = y
             ietvdup(j,ii,ie) = ienew
 
-            j = mod(ii+1,3) + 1
-            k = nen3v(j,ie)
+            j = mod(ii+1,n) + 1
+            k = kn(j)
             xd = xgv(k)
             yd = ygv(k)
 	    if ( bsphe ) call ev_g2c(xd,yd,xd,yd,dlon0,dlat0)
@@ -393,7 +396,8 @@ c computes horizontal tvd fluxes for one element
 
         logical bgradup
         logical bdebug
-	integer ii,k
+	integer ii,k,n
+	integer kn(3)
         integer ic,kc,id,kd,ip,iop
 	integer itot1,itot2
 	integer tet1
@@ -402,7 +406,8 @@ c computes horizontal tvd fluxes for one element
         real gcx,gcy,dx,dy
         real u,v
         real rf,psi
-        real alfa,dis,aj
+        real alfa,dis,aj,area
+	real b(3),c(3)
         real vel
         real gdx,gdy
 
@@ -418,6 +423,12 @@ c computes horizontal tvd fluxes for one element
 	  write(6,*) 'tvd: ',bgradup,itvd_type
 	end if
 
+! this is not working for 1d elements !!!!!!
+
+	  if( basin_element_is_1d(ie) ) then
+	    stop 'error stop tvd_fluxes: not yet ready for 1d'
+	  end if
+
 	  do ii=1,3
 	    fl(ii) = 0.
 	  end do
@@ -429,30 +440,23 @@ c computes horizontal tvd fluxes for one element
 
 	  u = ulnv(l,ie)
           v = vlnv(l,ie)
-	  aj = 24 * ev(10,ie)
+	  !aj = 24 * ev(10,ie)
+	  call get_vertex_area_of_element(ie,n,kn,b,c,area)
+	  aj = 2 * n * area
 
             ip = isum
             !if( itot .eq. 2 ) ip = 6 - ip		!bug fix
 	    ip = itot2*(6-ip) + itot1*ip
 
-            do ii=1,3
+            do ii=1,n
               if( ii .ne. ip ) then
-                !if( itot .eq. 1 ) then			!flux out of one node
-                !  ic = ip
-                !  id = ii
-                !  fact = 1.
-                !else					!flux into one node
-                !  id = ip
-                !  ic = ii
-                !  fact = -1.
-                !end if
                 ic = itot2*ii + itot1*ip
 		id = itot2*ip + itot1*ii
 		fact = -itot2 + itot1
 
-                kc = nen3v(ic,ie)
+                kc = kn(ic)
                 conc = cl(l,ic)
-                kd = nen3v(id,ie)
+                kd = kn(id)
                 cond = cl(l,id)
 
                 !dx = xgv(kd) - xgv(kc)
@@ -460,14 +464,14 @@ c computes horizontal tvd fluxes for one element
                 !dis = sqrt(dx**2 +dy**2)
 		! next is bug fix for lat/lon
 		iop = 6 - (id+ic)			!opposite node of id,ic
-		tet1 = 1+mod(iop,3)
-		dx = aj * ev(6+iop,ie)
+		tet1 = 1+mod(iop,n)
+		dx = aj * c(ie)
 		!if( tet1 .eq. id ) dx = -dx
 		dx = -2*smartdelta(tet1,id) * dx + dx
-		dy = aj * ev(3+iop,ie)
+		dy = aj * b(ie)
 		!if( tet1 .eq. ic ) dy = -dy
 		dy = -2*smartdelta(tet1,ic) * dy + dy
-		dis = ev(16+iop,ie)
+		dis = get_distance_of_vertex(iop,ie)
 
                 vel = abs( u*dx + v*dy ) / dis          !projected velocity
                 alfa = ( dt * vel  ) / dis

@@ -214,15 +214,18 @@ c*****************************************************************
 	integer ie
 	double precision xx(3),yy(3)
 	
-	integer ii,k
+	integer ii,k,n
+	integer kn(3)
 	double precision r
 
 	call random_number(r)
 	ie = r*nel + 1
 	ie = min(ie,nel)
 
+	call basin_get_vertex_nodes(ie,n,kn)
+
 	do ii=1,3
-	  k = nen3v(ii,ie)
+	  k = kn(ii)
 	  xx(ii) = xgv(k)
 	  yy(ii) = ygv(k)
 	end do

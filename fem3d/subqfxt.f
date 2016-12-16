@@ -121,6 +121,7 @@ c computes new temperature (forced by heat flux) - 3d version
 	use levels
         use basin, only : xgv,ygv  
         use mod_hydro_print  
+	use mod_geom_dynamic
 
 	implicit none
 
@@ -177,7 +178,6 @@ c local
 c functions
 	real depnode,areanode,getpar
 	integer ifemopa
-	logical is_dry_node
 c save
 	integer n93,icall
 	save n93,icall

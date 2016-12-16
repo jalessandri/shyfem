@@ -191,7 +191,7 @@ c******************************************************************
 
 c******************************************************************
 
-        subroutine write_connections(nkn,nel,nen3v,xgv,ygv)
+        subroutine write_connections
 
 c writes FEM connectivity
 c
@@ -207,11 +207,9 @@ c ie                    element number [1...nel]
 c xgv(k),ygv(k)         coordinates of node k
 c (nen3v(ii,ie),ii=1,3) element connectivity - nodes of element ie
 
-        implicit none
+	use basin
 
-        integer nkn,nel
-        integer nen3v(3,nel)
-        real xgv(nkn), ygv(nkn)
+        implicit none
 
         integer k,ie,ii
 

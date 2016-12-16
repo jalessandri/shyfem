@@ -8,10 +8,10 @@
 
 	implicit none
 
-	integer nk,ne,nl,nne,nnl
-	integer k,ie,ii,ibase,n,i,nv
+	integer nk,ne,nl,nne,nnl,nt
+	integer k,ie,ii,ibase,n,i,nv,il
 	integer kn(3)
-	integer nhn,nhe
+	integer nhn,nhe,nhl,nht
 	real flag
 	logical bdebug
 
@@ -23,7 +23,8 @@
 	bdebug = .false.
 
 	call grd_get_params(nk,ne,nl,nne,nnl)
-	call basin_init(nk,ne)
+	nt = ne + nl
+	call basin_init(nk,nt)
 
 !--------------------------------------------------------
 ! copy params
@@ -39,25 +40,45 @@
 
 	xgv = xv
 	ygv = yv
-	ipev = ippev
 	ipv = ippnv
 	iarnv = ianv
-	iarv = iaev
+	ipev(1:ne) = ippev(1:ne)
+	iarv(1:ne) = iaev(1:ne)
+	ipev(ne+1:ne+nl) = ipplv(1:nl)
+	iarv(ne+1:ne+nl) = ialv(1:nl)
 
 !--------------------------------------------------------
 ! copy element index
 !--------------------------------------------------------
 
+	nen3v = 0
+
 	do ie=1,ne
 	  ibase = ipntev(ie-1)
 	  n = ipntev(ie) - ipntev(ie-1)
 	  if( n .ne. 3 ) then
-	    !write(6,*) (ipntev(i),i=0,10)
 	    write(6,*) 'element is not triangle: ',ie,ippev(ie)
 	    stop 'error stop grd_to_basin: not a triangle'
 	  end if
 	  do ii=1,3
 	    nen3v(ii,ie) = inodev(ibase+ii)
+	  end do
+	end do
+
+!--------------------------------------------------------
+! copy channel index
+!--------------------------------------------------------
+
+	do il=1,nl
+	  ie = ne + il
+	  ibase = ipntlv(il-1)
+	  n = ipntlv(il) - ipntlv(il-1)
+	  if( n .ne. 2 ) then
+	    write(6,*) 'line is not channel: ',il,ipplv(il)
+	    stop 'error stop grd_to_basin: not a channel'
+	  end if
+	  do ii=1,2
+	    nen3v(ii,ie) = inodlv(ibase+ii)
 	  end do
 	end do
 
@@ -70,39 +91,50 @@
 	  if( hhev(ie) .ne. flag ) nhe = nhe + 1
 	end do
 
+	nhl = 0
+	do il=1,nl
+	  if( hhlv(il) .ne. flag ) nhl = nhl + 1
+	end do
+
 	nhn = 0
 	do k=1,nk
 	  if( hhnv(k) .ne. flag ) nhn = nhn + 1
 	end do
 
-	if( nhe > 0 .and. nhn > 0 ) then
-	  write(6,*) 'nhe,nhn: ',nhe,nhn
-	  if( nhe == nel .and. nhn ==nkn ) then
+	nht = nhe + nhl
+
+	if( nht > 0 .and. nhn > 0 ) then
+	  write(6,*) 'nht,nhn: ',nht,nhn
+	  if( nht == nel .and. nhn == nkn ) then
 	    write(6,*) 'can use both depths...'
 	    write(6,*) '... using element values'
 	    nhn = 0
-	  else if( nhe == nel ) then
+	  else if( nht == nel ) then
 	    write(6,*) 'depth on nodes incomplete...'
 	    write(6,*) '... using element values'
 	    nhn = 0
 	  else if( nhn == nkn ) then
 	    write(6,*) 'depth on elements incomplete...'
 	    write(6,*) '... using nodal values'
-	    nhe = 0
+	    nht = 0
 	  else
 	    write(6,*) 'depth values are incomplete...'
 	    stop 'error stop grd_to_basin: depth incomplete'
 	  end if
 	end if
 
-	write(6,*) 'nhe,nhn: ',nhe,nhn
+	write(6,*) 'nht,nhn: ',nht,nhn
 
 	if( nhn == 0 ) then
 	  do ie=1,ne
 	    hm3v(:,ie) = hhev(ie)
 	  end do
+	  do il=1,nl
+	    ie = ne + il
+	    hm3v(:,ie) = hhlv(il)
+	  end do
 	else
-	  do ie=1,ne
+	  do ie=1,nel
 	    call basin_get_vertex_nodes(ie,nv,kn)
 	    do ii=1,nv
 	      k = kn(ii)
@@ -117,7 +149,7 @@
 
 	if( bdebug ) then
 
-	do ie=1,ne,ne/10
+	do ie=1,nt,nt/10
 	  write(6,*) ie,(nen3v(ii,ie),ii=1,3)
 	end do
 
@@ -142,7 +174,7 @@
 
 	implicit none
 
-	integer nk,ne,nl,nne,nnl
+	integer nk,ne,nl,nne,nnl,il
 	integer k,ie,ii,ibase,n,nv
 	integer kn(3)
 	integer nhn,nhe
@@ -158,12 +190,13 @@
 	flag = -999.
 	bdebug = .false.
 
-	nl = 0
-	nne = 3*nel
-	nnl = 0
+	ne = nel_2d
+	nl = nel - ne
+	nne = 3*ne
+	nnl = 2*nl
 
-	write(6,*) 'basin_to_grd: ',nkn,nel
-	call grd_init(nkn,nel,nl,nne,nnl)
+	write(6,*) 'basin_to_grd: ',nkn,ne,nl
+	call grd_init(nkn,ne,nl,nne,nnl)
 
 !--------------------------------------------------------
 ! copy params
@@ -179,10 +212,12 @@
 
 	xv(1:nkn) = xgv(1:nkn)
 	yv(1:nkn) = ygv(1:nkn)
-	ippev(1:nel) = ipev(1:nel)
 	ippnv(1:nkn) = ipv(1:nkn)
 	ianv(1:nkn) = iarnv(1:nkn)
-	iaev(1:nel) = iarv(1:nel)
+	ippev(1:ne) = ipev(1:ne)
+	iaev(1:ne) = iarv(1:ne)
+	ipplv(1:nl) = ipev(ne+1:ne+nl)
+	ialv(1:nl) = iarv(ne+1:ne+nl)
 
 !--------------------------------------------------------
 ! copy element index
@@ -190,7 +225,7 @@
 
 	ibase = 0
 	ipntev(0) = 0
-	do ie=1,nel
+	do ie=1,ne
 	  ibase = ipntev(ie-1)
 	  call basin_get_vertex_nodes(ie,nv,kn)
 	  do ii=1,nv
@@ -198,6 +233,19 @@
 	    inodev(ibase) = kn(ii)
 	  end do
 	  ipntev(ie) = ibase
+	end do
+
+	ibase = 0
+	ipntlv(0) = 0
+	do il=1,nl
+	  ie = ne + il
+	  ibase = ipntlv(il-1)
+	  call basin_get_vertex_nodes(ie,nv,kn)
+	  do ii=1,nv
+	    ibase = ibase + 1
+	    inodlv(ibase) = kn(ii)
+	  end do
+	  ipntlv(il) = ibase
 	end do
 
 !--------------------------------------------------------
@@ -223,14 +271,21 @@
 	    hm = hm + h
 	  end do
 	  hm = hm / nv
-	  hhev(ie) = hm
+	  if( nv == 3 ) then
+	    hhev(ie) = hm
+	  else
+	    il = ie - ne
+	    hhlv(il) = hm
+	  end if
 	end do
 
 	if( bconst .and. bunique ) then		!constant depth
 	  hhev = hm3v(1,1)
+	  hhlv = hm3v(1,1)
 	  hhnv = flag
 	else if( bunique ) then			!unique depth at nodes
 	  hhev = flag
+	  hhlv = flag
 	else
 	  hhnv = flag
 	end if
