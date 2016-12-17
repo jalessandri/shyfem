@@ -297,8 +297,8 @@ c***************************************************************
 
 	do ie=1,nel
 	  if( iarv(ie) == ia ) cycle
-	  h = basin_vertex_average_2d(ie,hm3v)
-	  h = h + basin_vertex_average_2d(ie,zenv)
+	  h = basin_vertex_average(ie,hm3v)
+	  h = h + basin_vertex_average(ie,zenv)
 	  area = get_total_area_of_element(ie)
 	  vol = area * h
 	  voltot = voltot + vol

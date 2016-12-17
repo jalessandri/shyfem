@@ -191,7 +191,7 @@
         integer			:: ii,k
         real			:: xb,yb
 
-	call basin_element_average_2d_2var(ie,xgv,ygv,x,y)
+	call basin_element_average2(ie,xgv,ygv,x,y)
 
         end subroutine baric_cart
 

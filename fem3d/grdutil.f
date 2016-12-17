@@ -8,7 +8,7 @@
 
 	implicit none
 
-	integer nk,ne,nl,nne,nnl,nt
+	integer nk,ne,nl,nne,nnl,nt,nemax
 	integer k,ie,ii,ibase,n,i,nv,il
 	integer kn(3)
 	integer nhn,nhe,nhl,nht
@@ -44,7 +44,8 @@
 	iarnv = ianv
 	ipev(1:ne) = ippev(1:ne)
 	iarv(1:ne) = iaev(1:ne)
-	ipev(ne+1:ne+nl) = ne + ipplv(1:nl)
+	nemax = maxval( ippev(1:ne) )
+	ipev(ne+1:ne+nl) = nemax + ipplv(1:nl)
 	iarv(ne+1:ne+nl) = ialv(1:nl)
 
 !--------------------------------------------------------

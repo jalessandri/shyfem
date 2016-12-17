@@ -107,6 +107,22 @@ c***********************************************************
      +				,basin_vertex_average_2d_minmax
         END INTERFACE
 
+	PRIVATE ::
+     +				 basin_read_by_file
+     +				,basin_read_by_unit
+	PRIVATE ::
+     +				 basin_is_basin_by_file
+     +				,basin_is_basin_by_unit
+	PRIVATE :: 
+     +				 basin_element_average_2d_r
+     +				,basin_element_average_2d_d
+     +				,basin_element_average_3d
+	PRIVATE ::
+     +				 basin_element_average_2d_2var
+	PRIVATE ::
+     +				 basin_vertex_average_2d
+     +				,basin_vertex_average_2d_minmax
+
 !==================================================================
         contains
 !==================================================================

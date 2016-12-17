@@ -134,7 +134,7 @@ c-----------------------------------------------------------------
 
         do ie=1,nel
 
-	  call get_vertex_area_of_element_kbcd(ie,n,kn,b,c,area)
+	  call get_vertex_area_of_element(ie,n,kn,b,c,area)
 
 	  bc = 0.
 	  bc_orig = 0.

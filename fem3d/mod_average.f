@@ -45,6 +45,26 @@
      +				 extract_on_vertices_3d
         END INTERFACE
 
+	PRIVATE ::
+     +				 element_to_node_2d
+     +				,element_to_node_3d
+     +				,element_to_node_2d_minmax
+     +				,element_to_node_3d_minmax
+	PRIVATE ::
+     +				 vertex_to_element_2d
+	PRIVATE ::
+     +				 vertex_to_node_2d
+	PRIVATE ::
+     +				 node_to_vertex_2d
+     +				,node_to_vertex_2d_mask
+	PRIVATE ::
+     +				 node_to_element_2d
+     +				,node_to_element_3d
+	PRIVATE ::
+     +				 create_node_indicator_r
+	PRIVATE ::
+     +				 extract_on_vertices_3d
+
 !==================================================================
         contains
 !==================================================================

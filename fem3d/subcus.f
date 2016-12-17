@@ -2706,7 +2706,7 @@ c****************************************************************
 
 	if( ie .le. 0 ) return
 
-	call extract_on_vertices_3d(1,ie,cv,z)
+	call extract_on_vertices(1,ie,cv,z)
 
 	call femintp(ie,z,x,y,zp)
 
@@ -3218,7 +3218,7 @@ c introduce le condizioni iniziali per la concentrazione
 	  y = yco(i)
 	  ie = iel(i)
 
-	  call extract_on_vertices_3d(1,ie,cnv,cc)
+	  call extract_on_vertices(1,ie,cnv,cc)
 
 	  call femintp(ie,cc,x0,y,ccc)
 

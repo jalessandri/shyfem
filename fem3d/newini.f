@@ -664,7 +664,7 @@ c local
 	bsigma = nsigma .gt. 0
 
 	do ie=1,nel
-	  hm = basin_vertex_average_2d(ie,hm3v)
+	  hm = basin_vertex_average(ie,hm3v)
 	  hev(ie) = hm
 	  hmax = max(hmax,hm)
 	end do
@@ -929,7 +929,7 @@ c------------------------------------------------------------
 
 	do ie=1,nel
 
-	  hm = basin_vertex_average_2d(ie,hm3v)
+	  hm = basin_vertex_average(ie,hm3v)
 
 	  l = ilhv(ie)
 	  binsigma = l .le. nsigma

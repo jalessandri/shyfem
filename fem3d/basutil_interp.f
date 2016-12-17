@@ -549,7 +549,7 @@ c if ufact < 0: use it directly as sigma
 	end do
 
 	do ie=1,nel
-	  call get_vertex_area_of_element_kr(ie,n,kn,area)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  do ii=1,3
 	    k = kn(ii)
 	    at(k) = at(k) + area

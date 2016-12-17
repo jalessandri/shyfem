@@ -245,7 +245,7 @@ c x,y           coordinates of baricentre (return value)
         integer ie
         real x,y
 
-        call basin_element_average_2d_2var(ie,xgv,ygv,x,y)
+        call basin_element_average2(ie,xgv,ygv,x,y)
 
         end
 

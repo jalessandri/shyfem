@@ -292,7 +292,7 @@ c--------------------------------------------------------
 	call gtest('end bandwidth',nelddi,nkn,nel,nen3v)
 
 	write(nat,*) ' ...renumbering elements'
-        call renel(nel,nen3v,iaux,iedex,neaux,ipev,iarv,hev,raux)
+        call renel(nel,nen3v,ipev,iarv,hev)
 
 c--------------------------------------------------------
 c save pointers for depth
@@ -391,7 +391,7 @@ c
 	nrec = 0
 	rewind(ner)
    98	read(ner,6000,err=97,end=97) errtex
-	write(nat,*) errtex
+	write(nat,*) trim(errtex)
 	nrec = nrec + 1
 	goto 98
    97	continue
@@ -974,116 +974,112 @@ c exchange nodes after optimization
           end do
         end do
 
-c       copy arrays with kphv as rank table (iphv,rphv are aux arrays)
+c       copy arrays with kphv as rank table
 
-        call icopy(nkn,ipv,iphv,kphv)
-        call rcopy(nkn,xgv,rphv,kphv)
-        call rcopy(nkn,ygv,rphv,kphv)
-        call rcopy(nkn,hkv,rphv,kphv)
+        call icopy(nkn,ipv,kphv)
+        call rcopy(nkn,xgv,kphv)
+        call rcopy(nkn,ygv,kphv)
+        call rcopy(nkn,hkv,kphv)
 
         return
         end
 
 c**********************************************************
 
-        subroutine icopy(n,iv,iauxv,irank)
+        subroutine icopy(n,iv,irank)
 
 c copy one array to itself exchanging elements as in irank
 
         implicit none
 
         integer n
-        integer iv(n),iauxv(n)
+        integer iv(n)
         integer irank(n)
 
         integer i
+        integer iauxv(n)
 
-        do i=1,n
-          iauxv(i)=iv(i)
-        end do
+        iauxv=iv
 
         do i=1,n
           iv(irank(i))=iauxv(i)
         end do
 
-        return
         end
 
 c**********************************************************
 
-        subroutine rcopy(n,rv,rauxv,irank)
+        subroutine rcopy(n,rv,irank)
 
 c copy one array to itself exchanging elements as in irank
 
         implicit none
 
         integer n
-        real rv(n),rauxv(n)
+        real rv(n)
         integer irank(n)
 
         integer i
+        real rauxv(n)
 
-        do i=1,n
-          rauxv(i)=rv(i)
-        end do
+        rauxv=rv
 
         do i=1,n
           rv(irank(i))=rauxv(i)
         end do
 
-        return
         end
 
 c**********************************************************
 
-        subroutine renel(nel,nen3v,iaux,iedex,neaux,ipev,iarv,hev,raux)
+        subroutine renel(nel,nen3v,ipev,iarv,hev)
 
 c renumbering of elements
 
 c we construct iedex newly and use iaux,iedex as aux arrays
-c iedex is also used as a real aux array for rcopy	-> changed
-c neaux is probably he3v (real) used as an aux array	-> changed
 
         implicit none
 
         integer nel
         integer nen3v(3,nel)
-        integer iaux(nel)
-        integer iedex(nel)
-        integer neaux(3,nel)
         integer ipev(nel)
 	integer iarv(nel)
         real hev(nel)
-        real raux(nel)
 
-        integer ie,ii
+        integer neaux(3,nel)
+        integer ienum(nel)
+        integer index(nel)
+        integer irank(nel)
 
+        integer ie,k,kmax
+
+	kmax = 0
         do ie=1,nel
-          iaux(ie)=min(nen3v(1,ie),nen3v(2,ie),nen3v(3,ie))
+	  if( nen3v(3,ie) > 0 ) then
+	    k = minval(nen3v(:,ie))
+	    kmax = max(kmax,k)
+	    ienum(ie) = k
+	  else
+	    k = minval(nen3v(1:2,ie))
+	    ienum(ie) = k + kmax	!increase node numbers for 1d elements 
+	  end if
 	end do
 
-        call isort(nel,iaux,iedex)  !iedex is the index table
-        call rank(nel,iedex,iaux)   !iaux is the rank table
+        call isort(nel,ienum,index)   !index is the index table
+        call rank(nel,index,irank)    !irank is the rank table
 
-c       now we use iedex as an aux array and sort with iaux (rank)
+c       now we sort with irank
 
-        call icopy(nel,ipev,iedex,iaux)
-        call icopy(nel,iarv,iedex,iaux)
-        call rcopy(nel,hev,raux,iaux)  !we use iedex as real aux array
+        call icopy(nel,ipev,irank)
+        call icopy(nel,iarv,irank)
+        call rcopy(nel,hev,irank)
 
-        do ie=1,nel
-          do ii=1,3
-            neaux(ii,ie)=nen3v(ii,ie)
-          end do
-        end do
+        neaux=nen3v
 
         do ie=1,nel
-          do ii=1,3
-            nen3v(ii,iaux(ie))=neaux(ii,ie)
-          end do
+          nen3v(:,irank(ie))=neaux(:,ie)
         end do
 
-        return
         end
 
 c**********************************************************

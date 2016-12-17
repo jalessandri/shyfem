@@ -87,6 +87,20 @@ c  1	spherical (lat/lon)
      +                          ,get_tangent_direction_d
         END INTERFACE
 
+	PRIVATE ::
+     +                           get_vertex_area_of_element_r
+     +                          ,get_vertex_area_of_element_d
+     +                          ,get_vertex_area_of_element_kr
+     +                          ,get_vertex_area_of_element_kd
+     +                          ,get_vertex_area_of_element_kbcr
+     +                          ,get_vertex_area_of_element_kbcd
+	PRIVATE ::
+     +                           get_derivative_of_vertex_r
+     +                          ,get_derivative_of_vertex_d
+	PRIVATE ::
+     +                           get_tangent_direction_r
+     +                          ,get_tangent_direction_d
+
 !==================================================================
         contains
 !==================================================================
@@ -419,6 +433,17 @@ c****************************************************************
 	subroutine set_ev
 
 c set up ev vector
+
+	call set_ev_2d
+	!call set_ev_1d
+
+	end
+
+c****************************************************************
+
+	subroutine set_ev_2d
+
+c set up ev vector (2d)
 c
 c double precision version
 c
@@ -430,8 +455,6 @@ c revised on 28.01.92 by ggu (double precision, implicit none)
 	use evgeom
 
 	implicit none
-
-	include 'param.h'
 
 	logical bdebug
 	integer iedebug
@@ -469,7 +492,7 @@ c revised on 28.01.92 by ggu (double precision, implicit none)
 	pi=four*atan(one)
         rad = 180./pi
 
-	do ie=1,nel
+	do ie=1,nel_2d
 
 	bdebug = ( iedebug == ie )
 
@@ -674,8 +697,6 @@ c checks if coordinates are lat/lon
 
 	implicit none
 
-	include 'param.h'
-
 	logical bverbose
 	integer k,isphe
 	real xmin,xmax,ymin,ymax
@@ -742,12 +763,12 @@ c****************************************************************
 
 c tests if ev is set up correctly
 
-	use basin, only : nkn,nel,ngr,mbw
+	use basin
 	use evgeom
 
 	implicit none
 
-
+	logical b1d
 	integer ie,ii,i,ip
 	real bmax,cmax,bs,cs,b,c
 	real alpha,atria
@@ -761,6 +782,8 @@ c tests if ev is set up correctly
 	atria = 180.
 
 	do ie=1,nel
+
+	  b1d = basin_element_is_1d(ie)
 
 	  bmax=0.
 	  cmax=0.
@@ -782,6 +805,7 @@ c tests if ev is set up correctly
 	  if(ev(10,ie) .le. 0.) goto 99
 	  ip=2
 	  if(bmax.le.0. .or. abs(bs)/bmax.gt.eps) goto 99
+	  if( b1d ) cycle
 	  if(cmax.le.0. .or. abs(cs)/cmax.gt.eps) goto 99
 	  ip=3
 	  if( abs(alpha-atria)/180. .gt. eps ) goto 99
@@ -1171,19 +1195,20 @@ c***********************************************************
 	integer ie
 	double precision xm,ym
 
-	include 'param.h'
+	integer ii,k,n
+	integer kn(3)
 
-	integer ii,k
+	call basin_get_vertex_nodes(ie,n,kn)
 
 	xm = 0.
 	ym = 0.
-	do ii=1,3
-	  k = nen3v(ii,ie)
+	do ii=1,n
+	  k = kn(ii)
 	  xm = xm + xgv(k)
 	  ym = ym + ygv(k)
 	end do
-	xm = xm / 3.
-	ym = ym / 3.
+	xm = xm / n
+	ym = ym / n
 
 	end
 

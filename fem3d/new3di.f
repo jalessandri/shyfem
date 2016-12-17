@@ -449,7 +449,7 @@ c	------------------------------------------------------
 	call get_vertex_area_of_element(ie,nv,kn,b,c,area)
 	areat = nv * area
 
-	zm = basin_vertex_average_2d(ie,zeov)
+	zm = basin_vertex_average(ie,zeov)
 
 	z = 0.
 	zndg = 0.
