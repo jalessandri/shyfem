@@ -44,7 +44,7 @@
 	iarnv = ianv
 	ipev(1:ne) = ippev(1:ne)
 	iarv(1:ne) = iaev(1:ne)
-	ipev(ne+1:ne+nl) = ipplv(1:nl)
+	ipev(ne+1:ne+nl) = ne + ipplv(1:nl)
 	iarv(ne+1:ne+nl) = ialv(1:nl)
 
 !--------------------------------------------------------
@@ -142,6 +142,14 @@
 	    end do
 	  end do
 	end if
+
+	do ie=1,nel
+	  if( basin_element_is_1d(ie) ) then
+	    hm3v(3,ie) = 1.	!HACK ... set width
+	  end if
+	end do
+
+	call sp13_set_1d
 
 !--------------------------------------------------------
 ! debug output

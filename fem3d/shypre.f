@@ -47,8 +47,6 @@ c********************************************************
 
 	implicit none
 
-        include 'param.h'
-
 	character*80 name
 	character*80 file
 	character*80 errfil
@@ -62,6 +60,7 @@ c********************************************************
 	integer, save, allocatable :: neaux(:,:)
         real, save, allocatable :: raux(:)
         real, save, allocatable :: hev(:)
+        real, save, allocatable :: hlv(:)
         real, save, allocatable :: hkv(:)
         real, save, allocatable :: rphv(:)
         integer, save, allocatable :: ng(:)
@@ -153,6 +152,7 @@ c--------------------------------------------------------
 	allocate(neaux(3,nel))
 	allocate(raux(nel))
 	allocate(hev(nel))
+	allocate(hlv(nel))
 	allocate(hkv(nkn))
 	allocate(rphv(nkn))
 	allocate(ng(nkn))
@@ -162,9 +162,9 @@ c--------------------------------------------------------
 c handle depth
 c--------------------------------------------------------
 
-	call grd_get_depth(nkn,nel,hkv,hev)
+	call grd_get_depth(nk,ne,nl,hkv,hev,hlv)
 
-ggu
+	hev(ne+1:ne+nl) = hlv(1:nl)
 
 	nknh = 0
 	do k=1,nkn
@@ -180,7 +180,7 @@ ggu
         write(6,*) 'nknh,nelh : ',nknh,nelh
         !write(6,*) 'nli,nco   : ',nli,nco
 
-        if(nkn.le.0 .or. nel.le.0) then
+        if( nkn.le.0 .or. nel.le.0 ) then
           write(ner,*) ' Nothing to process'
 	  goto 99999
         end if
@@ -208,13 +208,13 @@ ggu
 	end if
 
 	if( binfo ) stop
-c
-c open files
-c
+
+c--------------------------------------------------------
+c open output file and process
+c--------------------------------------------------------
+
 	nb2=idefbas(basnam,'new')
         if(nb2.le.0) stop
-
-c end reading ----------------------------------------------------
 
 	nknddi = nkn
 	nelddi = nel
@@ -230,83 +230,73 @@ c end reading ----------------------------------------------------
         call isort(nel,ipev,iedex)
 
         write(nat,*) ' ...controlling uniqueness of node numbers'
-
         call uniqn(nkn,ipv,ipdex,ner,bstop)
 	if(bstop) goto 99909
 
         write(nat,*) ' ...controlling uniqueness of element numbers'
-
         call uniqn(nel,ipev,iedex,ner,bstop)
-
-	call gtest('end uniqn',nelddi,nkn,nel,nen3v)
+	if(bstop) goto 99910
 
         write(nat,*) ' ...controlling uniqueness of elements'
-
         call uniqe(nel,nen3v,iaux,iphev,ipev,ner,bstop)
         if(bstop) goto 99915
 
-	write(nat,*) ' ...changing extern with intern node numbers'
-
+	!write(nat,*) ' ...changing extern with intern node numbers'
         !call chexin(nkn,nel,nen3v,ipv,ipdex,ner,bstop)
 	!if(bstop) goto 99920
 
         write(nat,*) ' ...controlling node numbers'
-
-        call needn(nkn,nel,nen3v,ipv,iaux,ner,bstop)
+        call needn(nkn,nel,nen3v,ipv,ner,bstop)
 	if(bstop) goto 99918
 
 	write(nat,*) ' ...testing sense of nodes in index'
-
 	call ketest(nel,nen3v)
-	call gtest('end sense',nelddi,nkn,nel,nen3v)
-
         call clockw(nkn,nel,nen3v,ipev,xgv,ygv,ner,bstop)
 	if(bstop) goto 99930
 
 	write(nat,*) ' ...setting up side index'
-
         call estimate_grade(nkn,nel,nen3v,ng,ngr1)
 	allocate(iknot(ngr1,nk))
-
         call sidei(nkn,nel,nen3v,ng,iknot,ngr1,ngr)
-        call check_sidei(nkn,nel,nen3v,ipv,ng,iknot,ngr1,iaux)
-	call knscr(nkn,ngr,ngr1,iknot)
-
+        call check_sidei(nkn,nel,nen3v,ipv,ng,iknot,ngr1)
+	call knscr(nkn,ngr,ngr1,iknot)		!adjusts iknot
 	write(nat,*) ' Maximum grade of nodes is ',ngr
 
-c bandwidth optimization -------------------------------------------
-
-	call gtest('bandwidth',nelddi,nkn,nel,nen3v)
+c--------------------------------------------------------
+c bandwidth optimization
+c--------------------------------------------------------
 
         write(nat,*) ' ...optimizing band width'
-
+	call gtest('bandwidth',nelddi,nkn,nel,nen3v)
         call bandw(nel,nen3v,mbw)
 
-	call gtest('bandwidth 1',nelddi,nkn,nel,nen3v)
 	write(nat,*) ' Bandwidth is ',mbw
-
+	call gtest('bandwidth 1',nelddi,nkn,nel,nen3v)
         call bandop(nkn,ngr,ipv,iphv,kphv,ng,iknot,kvert,bopti,bauto)
-
 	call gtest('bandwidth 2',nelddi,nkn,nel,nen3v)
+
         if(bopti) then
           call bandex(nkn,nel,nen3v,neaux,kphv,iphv,rphv
      +				,ipv,xgv,ygv,hkv)
-	call gtest('bandwidth 3',nelddi,nkn,nel,nen3v)
+	  call gtest('bandwidth 3',nelddi,nkn,nel,nen3v)
           call bandw(nel,nen3v,mbw)
-	call gtest('bandwidth 4',nelddi,nkn,nel,nen3v)
+	  call gtest('bandwidth 4',nelddi,nkn,nel,nen3v)
 	  write(nat,*) ' Optimized bandwidth is ',mbw
 	end if
 
-c ------------------------------------------------------------------
+c--------------------------------------------------------
+c renumbering elements
+c--------------------------------------------------------
 
 	call ketest(nel,nen3v)
 	call gtest('end bandwidth',nelddi,nkn,nel,nen3v)
 
 	write(nat,*) ' ...renumbering elements'
-
         call renel(nel,nen3v,iaux,iedex,neaux,ipev,iarv,hev,raux)
 
-c save pointers for depth ------------------------------------------
+c--------------------------------------------------------
+c save pointers for depth
+c--------------------------------------------------------
 
         write(nat,*) ' ...saving pointers'
 
@@ -318,16 +308,9 @@ c save pointers for depth ------------------------------------------
 	  iphev(ie)=ipev(ie)
 	end do
 
-c write to nb2 -----------------------------------------------------
-
-	call ketest(nel,nen3v)
-	call gtest('write',nelddi,nkn,nel,nen3v)
-
-c*****************************************
-c	end part 1
-c*****************************************
-
-c process depths -------------------------------------------------
+c--------------------------------------------------------
+c process depths
+c--------------------------------------------------------
 
         write(nat,*) ' ...processing depths'
 
@@ -360,24 +343,30 @@ c process depths -------------------------------------------------
 
 	descrr=descrg
 
-c write to nb2
+c--------------------------------------------------------
+c write to output file
+c--------------------------------------------------------
 
 	write(nat,*) ' ...writing file ',nb2
 	write(nat,*)
 
 	call sp13uw(nb2)
-
 	close(nb2)
-
 	call bas_info
 
 	stop ' Successful completion'
 
+c--------------------------------------------------------
+c end of routines
+c--------------------------------------------------------
+
 99900	write(nat,*)' (00) error in dimension declaration'
 	goto 99
-99909	write(nat,*)' (09) error : no unique definition of nodes'
+99909	write(nat,*)' (09) error: no unique definition of node numbers'
 	goto 99
-99915	write(nat,*)' (15) error : no unique definition of elements'
+99910	write(nat,*)' (10) error: no unique definition of element numbers'
+	goto 99
+99915	write(nat,*)' (15) error: no unique definition of elements'
 	goto 99
 99918	write(nat,*)' (18) error reading file 1'
 	goto 99
@@ -465,6 +454,7 @@ c controlls uniqueness of elements (shell for equale)
         integer isum
 
         isum=0
+	bstop = .false.
 
         do ie=1,nel
           ka=0
@@ -484,8 +474,6 @@ c controlls uniqueness of elements (shell for equale)
         ie1=1
         do while(ie1.le.nel)
           ie2=ie1+1
-c          write(6,*) nel,ie1,ie2,index(ie1),index(ie2)
-          !do while(ie2.le.nel.and.iaux(index(ie1)).eq.iaux(index(ie2)))
           do
 	    if( ie2 > nel ) exit
 	    if( iaux(index(ie1)) /= iaux(index(ie2)) ) exit
@@ -498,9 +486,10 @@ c          write(6,*) nel,ie1,ie2,index(ie1),index(ie2)
           ie1=ie2
         end do
 
-        write(6,*) 'uniqe (isum) : ',isum
+	if( isum /= 0 ) then
+          write(6,*) 'uniqe (isum) : ',isum
+	end if
 
-        return
         end
 
 c*****************************************************************
@@ -544,12 +533,11 @@ c controlls uniqueness of listed elements
           end do
 	end do
 
-        return
         end
 
 c*****************************************************************
 
-        subroutine needn(nkn,nel,nen3v,ipv,iaux,ner,bstop)
+        subroutine needn(nkn,nel,nen3v,ipv,ner,bstop)
 
 c controlls if all nodes are needed (use nen3v as one-dim array)
 
@@ -559,13 +547,11 @@ c controlls if all nodes are needed (use nen3v as one-dim array)
         logical bstop
         integer nen3v(3,nel)
         integer ipv(nkn)
-        integer iaux(nkn)
 
         integer k,ie,ii
+        integer iaux(0:nkn)
 
-        do k=1,nkn
-          iaux(k)=0
-        end do
+        iaux=0
 
         do ie=1,nel
           do ii=1,3
@@ -580,7 +566,6 @@ c controlls if all nodes are needed (use nen3v as one-dim array)
           end if
         end do
 
-        return
         end
 
 c*****************************************************************
@@ -634,6 +619,7 @@ c test for anti-clockwise sense of nodes
         double precision a,x1,x2,y1,y2	!new 16.3.95
 
 	do ie=1,nel
+	  if( nen3v(3,ie) == 0 ) cycle
           a=0.
           do ii=1,3
             iii=mod(ii,3)+1
@@ -669,13 +655,12 @@ c estimates ngr
 
         integer i,ii,ie,k,ngr
 
-	do i=1,nkn
-          ng(i)=0
-	end do
+        ng = 0
 
 	do ie=1,nel
           do ii=1,3
 	    k = nen3v(ii,ie)
+	    if( k == 0 ) cycle
 	    ng(k) = ng(k) + 1
 	  end do
 	end do
@@ -684,15 +669,16 @@ c estimates ngr
 	do i=1,nkn
           ngr = max(ngr,ng(i))
 	end do
+
 	ngr = ngr + 1		!account for boundary nodes
 
 	end
 
 c*****************************************************************
 
-        subroutine check_sidei(nkn,nel,nen3v,ipv,ng,iknot,ngr1,iaux)
+        subroutine check_sidei(nkn,nel,nen3v,ipv,ng,iknot,ngr1)
 
-c set up side index and find grade
+c checks side index and grade
 
         implicit none
 
@@ -702,16 +688,14 @@ c set up side index and find grade
         integer ipv(nkn)
         integer ng(nkn)
         integer iknot(ngr1,nkn)
-        integer iaux(nkn)
 
         integer ii,ie,k
 	integer igr,iel
+        integer iaux(0:nkn)
 	logical bstop
 
 	bstop = .false.
-	do k=1,nkn
-	  iaux(k) = 0
-	end do
+	iaux = 0
 
 	do ie=1,nel
 	  do ii=1,3
@@ -747,18 +731,16 @@ c set up side index and find grade ngr
         integer ng(nkn)
         integer iknot(ngr1,nkn)
 
-        integer i,ii,iii,ie,k1,k2
+        integer i,ii,iii,ie,k1,k2,n
 
-	do i=1,nkn
-	  do ii=1,ngr1
-	    iknot(ii,i)=0
-	  end do
-          ng(i)=0
-	end do
+	iknot=0
+        ng=0
 
 	do ie=1,nel
-          do ii=1,3
-            iii=mod(ii,3)+1
+	  n = 3
+	  if( nen3v(3,ie) == 0 ) n = 2
+          do ii=1,n
+            iii=mod(ii,n)+1
             k1=nen3v(ii,ie)
             k2=nen3v(iii,ie)
             do i=1,ng(k1)
@@ -820,15 +802,17 @@ c determine bandwidth mbw
         integer nel,mbw
         integer nen3v(3,nel)
 
-        integer ie,ii,iii,k,kk
+        integer ie,ii,iii,k,kk,n
         integer mh,mm
 
 	mh=0
 
 	do ie=1,nel
-          do ii=1,3
+	  n = 3
+	  if( nen3v(3,ie) == 0 ) n = 2
+          do ii=1,n
             k=nen3v(ii,ie)
-            do iii=ii+1,3
+            do iii=ii+1,n
               kk=nen3v(iii,ie)
               mm=iabs(kk-k)
               if(mm.gt.mh) mh=mm
@@ -977,17 +961,16 @@ c exchange nodes after optimization
         real xgv(nkn),ygv(nkn)
         real hkv(nkn)
 
-        integer ie,ii
+        integer ie,ii,k
+
+        neaux = nen3v
+	nen3v = 0
 
         do ie=1,nel
           do ii=1,3
-            neaux(ii,ie)=nen3v(ii,ie)
-          end do
-        end do
-
-        do ie=1,nel
-          do ii=1,3
-            nen3v(ii,ie)=kphv(neaux(ii,ie))
+	    k = neaux(ii,ie)
+	    if( k == 0 ) cycle
+            nen3v(ii,ie) = kphv(k)
           end do
         end do
 
@@ -1330,8 +1313,8 @@ c**********************************************************
 	
 	berror = .false.
 
-	write(6,*) 'testing ... ',text
-	write(6,*) nelddi,nkn,nel
+	!write(6,*) 'testing ... ',text
+	!write(6,*) nelddi,nkn,nel
 
 	do ie=1,nel
 	  do ii=1,3
@@ -1348,6 +1331,7 @@ c**********************************************************
 	if( berror ) then
 	  write(6,*) 'testing has found errors...'
 	end if
+
 	end
 
 c**********************************************************
@@ -1409,12 +1393,6 @@ c checks uniquness of nodes in elements
 	  end if
 	end do
 
-	!write(77,*)
-	!do ie=1,10
-	!  write(77,*) ie,(nen3v(ii,ie),ii=1,3)
-	!end do
-
-	return
 	end
 
 c**********************************************************

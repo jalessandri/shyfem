@@ -117,25 +117,16 @@ c**********************************************************
 
 	logical :: bdebug = .false.
 
-	if( nkk == 0 .and. nee == 0 .and. nll == 0 .and.
-     +				nnee == 0 .and. nnll == 0 ) then
-	  nk = nkk
-	  ne = nee
-	  nl = nll
-	  nne = nnee
-	  nnl = nnll
-	else
-	  nk = max(1,nkk)
-	  ne = max(1,nee)
-	  nl = max(1,nll)
-	  nne = max(1,nnee)
-	  nnl = max(1,nnll)
-	end if
+	nk = nkk
+	ne = nee
+	nl = nll
+	nne = nnee
+	nnl = nnll
 
 	if( bdebug ) write(6,*) 'nk: ',nk,nk_grd,nk_grd_alloc
 
 	if( nk .ne. nk_grd ) then
-	  if( nk_grd_alloc > 0 ) then
+	  if( allocated(ippnv) ) then
 	    deallocate(ippnv,ianv,hhnv,xv,yv)
 	  end if
 	  nk_grd_alloc = nk
@@ -148,7 +139,7 @@ c**********************************************************
 	if( bdebug ) write(6,*) 'ne: ',ne,ne_grd,ne_grd_alloc
 
 	if( ne .ne. ne_grd ) then
-	  if( ne_grd_alloc > 0 ) then
+	  if( allocated(ippev) ) then
 	    deallocate(ippev,iaev,hhev)
 	  end if
 	  ne_grd_alloc = ne
@@ -163,7 +154,7 @@ c**********************************************************
 	if( bdebug ) write(6,*) 'nl: ',nl,nl_grd,nl_grd_alloc
 
 	if( nl .ne. nl_grd_alloc ) then
-	  if( nl_grd_alloc > 0 ) then
+	  if( allocated(ipplv) ) then
 	    deallocate(ipplv,ialv,hhlv)
 	  end if
 	  nl_grd_alloc = nl
@@ -178,7 +169,7 @@ c**********************************************************
 	if( bdebug ) write(6,*) 'nne: ',nne,nne_grd,nne_grd_alloc
 
 	if( nne .ne. nne_grd_alloc ) then
-	  if( nne_grd_alloc > 0 ) then
+	  if( allocated(inodev) ) then
 	    deallocate(inodev)
 	  end if
 	  nne_grd_alloc = nne
@@ -191,7 +182,7 @@ c**********************************************************
 	if( bdebug ) write(6,*) 'nnl: ',nnl,nnl_grd,nnl_grd_alloc
 
 	if( nnl .ne. nnl_grd_alloc ) then
-	  if( nnl_grd_alloc > 0 ) then
+	  if( allocated(inodlv) ) then
 	    deallocate(inodlv)
 	  end if
 	  nnl_grd_alloc = nnl
@@ -262,6 +253,8 @@ c*****************************************************************
 	nl = nl_grd
 	nne = nne_grd
 	nnl = nnl_grd
+
+	!write(6,*) 'grd_get_params: ',nk,ne,nl,nne,nnl
 
 	end subroutine grd_get_params
 
@@ -1595,15 +1588,16 @@ c writes out node list
 
 c*****************************************************************
 
-	subroutine grd_get_depth(nk,ne,hkv,hev)
+	subroutine grd_get_depth(nk,ne,nl,hkv,hev,hlv)
 
 	use grd
 
 	implicit none
 
-	integer nk,ne
+	integer nk,ne,nl
 	real hkv(nk)
 	real hev(ne)
+	real hlv(nl)
 
 	if( ne > 0 ) then
 	  if( ne .ne. ne_grd ) then
@@ -1619,6 +1613,14 @@ c*****************************************************************
 	    stop 'error stop grd_get_depth: dimension mismatch'
 	  end if
 	  hkv = hhnv
+	end if
+
+	if( nl > 0 ) then
+	  if( nl .ne. nl_grd ) then
+	    write(6,*) 'nl,nl_grd: ',nl,nl_grd
+	    stop 'error stop grd_get_depth: dimension mismatch'
+	  end if
+	  hlv = hhlv
 	end if
 
 	end
