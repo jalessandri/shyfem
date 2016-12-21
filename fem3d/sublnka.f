@@ -48,12 +48,12 @@ c-------------------------------------------------------------
 c make static arrays
 c-------------------------------------------------------------
 
-        call mklenk(nlkdi,nkn,nel,nen3v,ilinkv,lenkv)
-        call mklenkii(nlkdi,nkn,nel,nen3v,ilinkv,lenkv,lenkiiv)
-        call mklink(nkn,ilinkv,lenkv,linkv)
+        call mklenk(nlkdi,ilinkv,lenkv)
+        call mklenkii(nlkdi,ilinkv,lenkv,lenkiiv)
+        call mklink(ilinkv,lenkv,linkv)
 
-        call mkkant(nkn,ilinkv,lenkv,linkv,kantv)
-        call mkielt(nkn,nel,ilinkv,lenkv,linkv,ieltv)
+        call mkkant(ilinkv,lenkv,linkv,kantv)
+        call mkielt(ilinkv,lenkv,linkv,ieltv)
 
 c-------------------------------------------------------------
 c write some statistics
@@ -120,11 +120,11 @@ c-------------------------------------------------------------
 c check static arrays
 c-------------------------------------------------------------
 
-        call checklenk(nkn,ilinkv,lenkv,nen3v)
-        call checklink(nkn,ilinkv,linkv)
+        call checklenk(ilinkv,lenkv)
+        call checklink(ilinkv,lenkv,linkv)
 
-        call checkkant(nkn,kantv)
-        call checkielt(nel,ieltv)
+        call checkkant(kantv)
+        call checkielt(ieltv)
 
 	call check_subs
 

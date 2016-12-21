@@ -30,7 +30,7 @@ c updates geometrical array (ieltv)
 
         implicit none
 
-        call update_ielt(nel,inodv,ieltv)
+        call update_ielt(inodv,ieltv)
 
 	end
 

@@ -199,7 +199,7 @@ c makes area of finite volume
 	arfvlv = 0.
 
 	do ie=1,nel
-	  call get_vertex_area_of_element_kr(ie,n,kn,area)
+	  call get_vertex_area_of_element(ie,n,kn,area)
 	  do ii=1,n
 	    k = kn(ii)
 	    arfvlv(k) = arfvlv(k) + area

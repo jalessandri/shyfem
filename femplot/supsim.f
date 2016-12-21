@@ -1938,7 +1938,7 @@ c plots node values
 	call qgray(dgray)
 
 	do ie=1,nel
-	  h = basin_vertex_average_2d(ie,hm3v)
+	  h = basin_vertex_average(ie,hm3v)
 	  if( bwater(ie) .and. h > hgray ) cycle
 	  call getexy(ie,x,y)
 	  n = basin_get_vertex_of_element(ie)

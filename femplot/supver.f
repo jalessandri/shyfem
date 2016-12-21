@@ -81,7 +81,7 @@ c f(ii) > 0 ==> flux into node ii
         do ie=1,nel
          !if( bwater(ie) ) then           !FIXME	!not working
 	  inwater = inwater + 1
-	  call get_vertex_area_of_element_kbcr(ie,n,kn,b,c,area)
+	  call get_vertex_area_of_element(ie,n,kn,b,c,area)
           ilevel = ilhv(ie)
           do l=1,ilevel
             do ii=1,n

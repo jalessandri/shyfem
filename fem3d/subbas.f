@@ -620,13 +620,14 @@ c***********************************************************
         integer, intent(in) :: k
         integer, intent(in) :: ie
 
-	integer ii
+	integer ii,n
 
 	iiknext = 0
+	n = basin_get_vertex_of_element(ie)
 
-        do ii=1,3
+        do ii=1,n
           if( nen3v(ii,ie) .eq. k ) then
-            iiknext = mod(ii,3)+1
+            iiknext = mod(ii,n)+1
             return
           end if
         end do
@@ -643,13 +644,14 @@ c***********************************************************
         integer, intent(in) :: k
         integer, intent(in) :: ie
 
-	integer ii
+	integer ii,n
 
 	iikbhnd = 0
+	n = basin_get_vertex_of_element(ie)
 
-        do ii=1,3
+        do ii=1,n
           if( nen3v(ii,ie) .eq. k ) then
-            iikbhnd = mod(ii+1,3)+1
+            iikbhnd = mod(ii-2+n,n)+1
             return
           end if
         end do
@@ -666,7 +668,11 @@ c***********************************************************
         integer, intent(in) :: k
         integer, intent(in) :: ie
 
-	kknext = nen3v(iiknext(k,ie),ie)
+	integer ii
+
+	kknext = 0
+	ii = iiknext(k,ie)
+	if( ii /= 0 ) kknext = nen3v(ii,ie)
 
 	end
 
@@ -680,7 +686,11 @@ c***********************************************************
         integer, intent(in) :: k
         integer, intent(in) :: ie
 
-	kkbhnd = nen3v(iikbhnd(k,ie),ie)
+	integer ii
+
+	kkbhnd = 0
+	ii = iikbhnd(k,ie)
+	if( ii /= 0 ) kkbhnd = nen3v(ii,ie)
 
 	end
 
