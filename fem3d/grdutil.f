@@ -1,7 +1,7 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 2011-2020  Georg Umgiesser
 !
 !    This file is part of SHYFEM.
 !
@@ -44,6 +44,8 @@
 ! 16.02.2019	ggu	changed VERS_7_5_60
 ! 21.05.2019	ggu	changed VERS_7_5_62
 ! 09.04.2020	ggu	new utility routines for setting depth
+! 28.05.2020	ggu	use bgrdwrite
+! 13.10.2020	ggu	write grid with constant bathymetry on nodes
 
 !***************************************************************
 
@@ -58,7 +60,7 @@
 	integer k,ie,ii,ibase,n,i
 	integer nhn,nhe
 	real flag
-	logical bdebug,bwrite
+	logical bdebug
 
 !--------------------------------------------------------
 ! initialize
@@ -66,7 +68,6 @@
 
 	flag = -999.
 	bdebug = .false.
-	bwrite = .false.
 
 	call grd_get_params(nk,ne,nl,nne,nnl)
 	call basin_init(nk,ne)
@@ -141,7 +142,7 @@
 	  end if
 	end if
 
-	if( bwrite ) write(6,*) 'nhe,nhn: ',nhe,nhn
+	if( bgrdwrite ) write(6,*) 'nhe,nhn: ',nhe,nhn
 
 	if( nhn == 0 ) then
 	  do ie=1,ne
@@ -208,7 +209,8 @@
 	nne = 3*nel
 	nnl = 0
 
-	write(6,*) 'basin_to_grd: ',nkn,nel
+	if( bgrdwrite ) write(6,*) 'basin_to_grd: ',nkn,nel
+
 	call grd_init(nkn,nel,nl,nne,nnl)
 
 !--------------------------------------------------------
@@ -272,8 +274,10 @@
 	end do
 
 	if( bconst .and. bunique ) then		!constant depth
-	  hhev = h
-	  hhnv = flag
+	  !hhev = h
+	  !hhnv = flag
+	  hhev = flag
+	  hhnv = h
 	else if( bunique ) then			!unique depth at nodes
 	  hhev = flag
 	else

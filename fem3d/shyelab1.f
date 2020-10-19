@@ -1,7 +1,8 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 1998-1999,2001,2003,2007-2008,2010  Georg Umgiesser
+!    Copyright (C) 2015-2020  Georg Umgiesser
 !
 !    This file is part of SHYFEM.
 !
@@ -70,6 +71,7 @@
 ! 21.05.2019	ggu	changed VERS_7_5_62
 ! 22.07.2019    ggu     new routines for handling time step check
 ! 28.01.2020    ggu     new code for vorticity
+! 13.06.2020    ggu     use standard routines to set depth
 !
 !**************************************************************
 
@@ -260,7 +262,9 @@
 
 	call shy_make_area
 	!call shy_check_area
-	call outfile_make_depth(nkn,nel,nen3v,hm3v,hev,hkv)
+	!call outfile_make_depth(nkn,nel,nen3v,hm3v,hev,hkv)
+	call make_hev
+	call make_hkv
 
 	!--------------------------------------------------------------
 	! write info to terminal

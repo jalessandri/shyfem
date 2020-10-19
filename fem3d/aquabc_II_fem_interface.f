@@ -1,9 +1,8 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Petras Zemlys    
-!    Copyright (C) 1985-2018  Georg Umgiesser
-!    Copyright (C) 1985-2018  Ali Erturk
+!    Copyright (C) 2004,2006,2011  Petras Zemlys
+!    Copyright (C) 2015-2019  Georg Umgiesser
 
 !    This file is part of SHYFEM.
 !
@@ -253,6 +252,7 @@
       use levels, only: ilhkv, nlvdi, nlv  
       use basin, only: nkn, nkndi, neldi, ipv
       
+      use mod_debug
       use mod_diff_visc_fric
       !use mod_conz
 
@@ -1004,7 +1004,7 @@
          vol_old_fast(k,l) = volold
          area_fast   (k,l) = area
 
-         if (isnan(depth).or.depth.eq.0)
+         if (is_nan(depth).or.depth.eq.0)
      +        then
           print *,
      +   'aquabc_II_fem_interface: Depth is NaN or zero:', depth,
@@ -1012,7 +1012,7 @@
           stop
          end if
 
-        if (isnan(vol).or.vol.eq.0)
+        if (is_nan(vol).or.vol.eq.0)
      +        then
          print *,
      +   'aquabc_II_fem_interface: Volume is NaN or zero:', vol,
@@ -1020,7 +1020,7 @@
          stop
         end if
 
-         if (isnan(area).or.area.eq.0)
+         if (is_nan(area).or.area.eq.0)
      +       then
           print *,
      +   'aquabc_II_fem_interface: Area is NaN or zero:', area,

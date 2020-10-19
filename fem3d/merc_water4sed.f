@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 2018  Ginevra Rosat
+!    Copyright (C) 2018  Donata Melaku Canu
+!    Copyright (C) 2019  Celia Laurent
 !
 !    This file is part of SHYFEM.
 !
@@ -28,7 +30,7 @@
 !
 ! revision log :
 !
-! 30.05.2018    dmc&gr	integration of the 0d module into SHYFEM
+! 30.05.2018	dmc&gir	integration of the 0d module into SHYFEM
 ! 10.07.2019	clc	3d sinking, debug
 !
 ! notes :

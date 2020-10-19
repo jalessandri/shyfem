@@ -1,12 +1,17 @@
 
 #------------------------------------------------------------------------
 #
-#    Copyright (C) 1985-2018  Georg Umgiesser
+#    Copyright (C) 1985-2020  Georg Umgiesser
 #
 #    This file is part of SHYFEM.
 #
 #------------------------------------------------------------------------
 
+#------------------------------------------------------------
+#
+# This is the Rules.make file for shyfem
+#
+#------------------------------------------------------------
 
 #------------------------------------------------------------
 # This file defines various parameters to be used
@@ -47,12 +52,14 @@ COMPILER_PROFILE = NORMAL
 # INTEL			->	ifort
 # PORTLAND		->	pgf90
 # IBM			->	xlf
+# PGI			->	nvfortran
 #
 # Available options for the C compiler are:
 #
 # GNU_GCC		->	gcc
 # INTEL			->	icc
 # IBM			->	xlc
+# PGI			->	nvc
 #
 ##############################################
 
@@ -61,10 +68,12 @@ FORTRAN_COMPILER = GNU_GFORTRAN
 #FORTRAN_COMPILER = INTEL
 #FORTRAN_COMPILER = PORTLAND
 #FORTRAN_COMPILER = IBM
+#FORTRAN_COMPILER = PGI
 
 C_COMPILER = GNU_GCC
 #C_COMPILER = INTEL
 #C_COMPILER = IBM
+#C_COMPILER = PGI
 
 ##############################################
 # Parallel compilation
@@ -103,6 +112,31 @@ PARALLEL_OMP = false
 PARALLEL_MPI = NONE
 #PARALLEL_MPI = NODE
 #PARALLEL_MPI = ELEM
+
+##############################################
+# Partition library for domain decomposition
+##############################################
+#
+# Here you specify the external module to be used
+# for the partition of the grid. The software
+# should be downloaded and installed separately.
+#
+# There are different options for the software:
+#
+#  - METIS: http://glaros.dtc.umn.edu/gkhome/views/metis
+#  - ...
+#
+# The variable PARTSDIR indicates the directory
+# where the library and its include files can be found.
+# Please leave out the final lib specification.
+# This is mandatory only if the library has been
+# installed in a non-standard place.
+#
+##############################################
+
+PARTS = NONE
+#PARTS = METIS
+#PARTSDIR = /usr/local
 
 ##############################################
 # Solver for matrix solution
@@ -513,7 +547,7 @@ ifeq ($(FORTRAN_COMPILER),GNU_G77)
   LINKER	= $(F77)
   LFLAGS	= $(FGNU_OPT) $(FGNU_PROFILE) $(FGNU_OMP)
   FFLAGS	= $(LFLAGS) $(FGNU_NOOPT) $(FGNU_WARNING)
-  FINFOFLAGS	= -v
+  FINFOFLAGS	= --version
 endif
 
 ifeq ($(FORTRAN_COMPILER),GNU_GFORTRAN)
@@ -528,9 +562,70 @@ ifeq ($(FORTRAN_COMPILER),GNU_GFORTRAN)
   LINKER	= $(F77)
   LFLAGS	= $(FGNU_OPT) $(FGNU_PROFILE) $(FGNU_OMP)
   FFLAGS	= $(LFLAGS) $(FGNU_NOOPT) $(FGNU_WARNING) $(FGNU_GENERAL)
-  FINFOFLAGS	= -v
+  FINFOFLAGS	= --version
 endif
 
+##############################################
+#
+# PGI compiler (nvfortran)
+#
+##############################################
+#
+# for download see: https://developer.nvidia.com/nvidia-hpc-sdk-download
+#
+##############################################
+
+FPGI_GENERAL = 
+ifdef MODDIR
+  FPGI_GENERAL = -module $(MODDIR)
+endif
+
+FPGI_OMP   =
+ifeq ($(PARALLEL_OMP),true)
+  FPGI_OMP   = -mp
+endif
+
+FPGI_BOUNDS = 
+ifeq ($(BOUNDS),true)
+  FPGI_BOUNDS = -check uninit 
+  FPGI_BOUNDS = -Mbounds -Mchkptr -Mchkstk
+endif
+
+FPGI_PROFILE = 
+ifeq ($(PROFILE),true)
+  FPGI_PROFILE = -Mprof
+endif
+
+FPGI_NOOPT = 
+ifeq ($(DEBUG),true)
+  FPGI_NOOPT = -g -traceback -Ktrap=fp
+endif
+
+FPGI_OPT   = -O
+ifeq ($(OPTIMIZE),HIGH)
+  FPGI_OPT   = -O3
+endif
+ifeq ($(OPTIMIZE),NONE)
+  FPGI_OPT   = 
+endif
+
+FGNU_OMP   =
+ifeq ($(PARALLEL_OMP),true)
+  FGNU_OMP   =  -fopenmp
+endif
+
+FPGI_WARNING =
+
+ifeq ($(FORTRAN_COMPILER),PGI)
+  FPGI		= nvfortran
+  F77		= $(FPGI)
+  F95		= nvfortran
+  LINKER	= $(FPGI)
+  LFLAGS	= $(FPGI_OPT) $(FPGI_PROFILE) $(FPGI_OMP) $(FPGI_BOUNDS)
+  FFLAGS	= $(LFLAGS) $(FPGI_NOOPT) $(FPGI_WARNING) $(FPGI_GENERAL)
+  FINFOFLAGS	= --version
+endif
+ 
 ##############################################
 #
 # IBM compiler (xlf)
@@ -759,7 +854,16 @@ ifeq ($(C_COMPILER),GNU_GCC)
   CFLAGS = -O -Wall -pedantic
   CFLAGS = -O -Wall -pedantic -std=gnu99  #no warnings for c++ style comments
   LCFLAGS = -O 
-  CINFOFLAGS = -v
+  CINFOFLAGS = --version
+endif
+
+ifeq ($(C_COMPILER),PGI)
+  CC     = nvc
+  CFLAGS = -O -Wall -pedantic
+  CFLAGS = -O -Wall -pedantic -std=gnu99  #no warnings for c++ style comments
+  CFLAGS = -O -Wall
+  LCFLAGS = -O 
+  CINFOFLAGS = --version
 endif
 
 ifeq ($(C_COMPILER),INTEL)

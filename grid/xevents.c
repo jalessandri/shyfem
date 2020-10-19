@@ -1,7 +1,7 @@
 
 /************************************************************************\
  *
- *    Copyright (C) 1985-2018  Georg Umgiesser
+ *    Copyright (C) 1994-1995,2014  Georg Umgiesser
  *
  *    This file is part of SHYFEM.
  *
@@ -24,7 +24,7 @@
 \************************************************************************/
 
 
-/************************************************************************\ 
+/************************************************************************\
  *
  * gevents.c - event routines for gcc under DOS
  *
@@ -83,8 +83,6 @@ static Window	 MyWindow;
 static long	StandardMask;
 static long	AllMask;
 static long	MoveMask;
-
-static int useless = 0;
 
 #define GGU_DEBUG 1
 /*#undef GGU_DEBUG*/
@@ -184,7 +182,7 @@ void QNextEvent( QEvent *eventp )
 {
 	int configure;
 	int width=0,height=0;
-	int i,loop;
+	int loop;
 	int button;
 	KeySym mykey;
 	char c;
@@ -236,8 +234,7 @@ void QNextEvent( QEvent *eventp )
 	case KeyPress:
 		if( !( ActualEventMask & QKeyPressMask ) ) break;
 		eventp->type = QKeyPress;
-                i=XLookupString(&(XActualEvent.xkey),&c,1,&mykey,0);
-		useless = i;
+                (void) XLookupString(&(XActualEvent.xkey),&c,1,&mykey,0);
 /*
                 if( mykey == XK_Return )
                         c='\n';

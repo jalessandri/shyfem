@@ -1,7 +1,7 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 1998-2020  Georg Umgiesser
 !
 !    This file is part of SHYFEM.
 !
@@ -369,6 +369,7 @@ c 25.11.2019	ggu	version 7.5.66
 c 20.12.2019	ggu	version 7.5.67	Christmas 2019 edition
 c 31.01.2020	ggu	version 7.5.68	Brexit edition
 c 06.03.2020	ggu	version 7.5.69	Vincenzo edition
+c 19.05.2020	ggu	version 7.5.70	Covid edition
 c
 c*****************************************************************
 
@@ -378,19 +379,26 @@ c*****************************************************************
 
 c DOCS	START	P_version
 c
-c \newcommand{\VERSION}{7.5.69}
-c \newcommand{\version}{7\_5\_69}
-c \newcommand{\COMMIT}{2020-05-10}
+c \newcommand{\VERSION}{7.5.70}
+c \newcommand{\version}{7\_5\_70}
+c \newcommand{\COMMIT}{2020-10-13}
 c
 c DOCS	END
 
         implicit none
 
-        character*10, parameter :: version = '7.5.69'
-        character*10, parameter :: commit  = '2020-05-10'
+	logical, save		:: bshort = .false.
+
+        character*10, parameter :: version = '7.5.70'
+        character*10, parameter :: commit  = '2020-10-13'
         character*17, parameter :: text    = 'SHYFEM VERSION = '
 
         character*40, parameter :: string = text//version//'  '//commit
+
+	character*50, parameter :: acronym =
+     +	    	'System of HydrodYnamic Finite Element Modules'
+	character*50, parameter :: copyright =
+     +		'Copyright (C) The Shyfem Team 1985-2020'
 
 !=================================================================
 	end module shyfem_version
@@ -455,6 +463,8 @@ c*****************************************************************
 
 c writes copyright and version/dimension
 
+	use shyfem_version
+
 	implicit none
 
         character*(*) routine
@@ -465,20 +475,45 @@ c writes copyright and version/dimension
 	call get_shyfem_version(vers)
 	call get_shyfem_commit(comm)
 
+	if( bshort ) then
+
+        write(6,*) 'SHYFEM - '//acronym
+        write(6,*) copyright
+        write(6,*) routine
+
+	else
+
         write(6,*)
-        write(6,*) ' ----------------------------------------------'
+        write(6,*) '----------------------------------------------'
         write(6,*)
-        write(6,*) ' SHYFEM - Finite Element Model for coastal seas'
-        write(6,*) ' Copyright (C) The Shyfem Team 1985-2018'
+        write(6,*) 'SHYFEM'
+        write(6,*) acronym
+        write(6,*) copyright
         write(6,*)
-        write(6,*) ' version: ',vers
-        write(6,*) ' commit : ',comm
-        write(6,*) ' routine: ',routine
+        write(6,*) 'version: ',vers
+        write(6,*) 'commit : ',comm
+        write(6,*) 'routine: ',routine
         write(6,*)
-        write(6,*) ' ----------------------------------------------'
+        write(6,*) '----------------------------------------------'
         write(6,*)
 
+	end if
+
         end
+
+c*****************************************************************
+
+	subroutine shyfem_set_short_copyright(bset)
+
+	use shyfem_version
+
+	implicit none
+
+	logical bset
+
+	bshort = bset
+
+	end
 
 c*****************************************************************
 

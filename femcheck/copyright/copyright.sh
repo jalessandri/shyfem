@@ -2,7 +2,7 @@
 #
 #------------------------------------------------------------------------
 #
-#    Copyright (C) 1985-2018  Georg Umgiesser
+#    Copyright (C) 1985-2020  Georg Umgiesser
 #
 #    This file is part of SHYFEM.
 #
@@ -81,11 +81,24 @@ CheckExeType()
     if [[ $first =~ '#!/'.* ]]; then
       if [ ! -x $file ]; then
 	errors=$(( errors + 1 ))
-        echo "*** $file is a script but is not executable"
+        if [ $write = "YES" ]; then
+          echo "making $file executable"
+	  chmod +x $file
+        else
+          echo "*** $file is a script but is not executable"
+        fi
       fi
     fi
   done
-  [ $errors -ne 0 ] && exit 1
+  if [ $errors -ne 0 ]; then
+    if [ $write = "YES" ]; then
+      echo "$errors files have been made executable..."
+      errors=0
+    else
+      echo "use -write to make scripts executable"
+      exit 1
+    fi
+  fi
 
   echo "--- printing scripts that have no copyright"
 
@@ -544,15 +557,15 @@ FullUsage()
   echo "  --check            check revision log (default)"
   echo "  --gitrev           integrates git revision log into file"
   echo "  --gitmerge         merges git revision log into file"
-  echo "  --gui              if files are changed show in gui diff"
   echo "  --stats            show stats of revision log and copyright"
-  echo "  --write            really write changes to file"
-  echo "  --crewrite         rewrites c style revision log to standard"
-  echo "  --keep             keep changed files (.new) for inspection"
+  #echo "  --crewrite         rewrites c style revision log to standard"
   echo "  --substdev         substitutes developer name with new name"
-  echo "  --updatecopy       updates copyright with info from revision log"
   echo "  --onlycopy         only checks copyright notice"
+  echo "  --updatecopy       updates copyright with info from revision log"
   echo "  --newcopy          substitute old with new copyright"
+  echo "  --gui              if files are changed show in gui diff"
+  echo "  --write            really write changes to file"
+  echo "  --keep             keep changed files (.revnew) for inspection"
 }
 
 #---------------------------------------------------------------
@@ -595,7 +608,7 @@ elif [ -z "$what" ]; then
   Usage; exit 0
 fi
 
-echo "running in directory: $PWD"
+#echo "running in directory: $PWD"
 
 #---------------------------------------------------------------
 

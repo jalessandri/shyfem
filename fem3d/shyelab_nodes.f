@@ -1,7 +1,8 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 2016-2020  Georg Umgiesser
+!    Copyright (C) 2020  Leslie Aveytua
 !
 !    This file is part of SHYFEM.
 !
@@ -37,6 +38,7 @@
 ! 15.10.2018	ggu	added option -coord (bcoord,scoord)
 ! 16.02.2019	ggu	changed VERS_7_5_60
 ! 18.03.2020	ggu&laa	better writing of scalar values
+! 13.06.2020	ggu	bug fix in write_nodes_hydro_fem()
 !
 !***************************************************************
 
@@ -895,7 +897,7 @@
      +                          ,nvers,np,lmax
      +                          ,string
      +                          ,il,hd
-     +                          ,lmax,znv)
+     +                          ,lmax,z)
 
 	ivar = 2
 	lmax = nlv
@@ -907,13 +909,13 @@
      +                          ,nvers,np,lmax
      +                          ,stringx
      +                          ,il,hd
-     +                          ,nlvdi,uprv)
+     +                          ,nlvdi,u)
 
         call fem_file_write_data(iformat,iunit
      +                          ,nvers,np,lmax
      +                          ,stringy
      +                          ,il,hd
-     +                          ,nlvdi,vprv)
+     +                          ,nlvdi,v)
 
 	return
    74	continue

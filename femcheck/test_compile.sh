@@ -2,7 +2,7 @@
 #
 #------------------------------------------------------------------------
 #
-#    Copyright (C) 1985-2018  Georg Umgiesser
+#    Copyright (C) 1985-2020  Georg Umgiesser
 #
 #    This file is part of SHYFEM.
 #
@@ -12,9 +12,10 @@
 #
 #--------------------------------------------------------
 
-compilers="GNU_GFORTRAN INTEL"
+compilers="GNU_GFORTRAN INTEL PGI"
 #compilers="GNU_GFORTRAN"
 #compilers="INTEL"
+#compilers="PGI"
 
 rules_arc_dir=./arc/rules
 rules_dist_dir=./femcheck/rules
@@ -195,9 +196,11 @@ SetCompiler()
     compiler=gfortran
   elif [ "$comp" = "INTEL" ]; then
     compiler=intel
+  elif [ "$comp" = "PGI" ]; then
+    compiler=pgi
   else
-    echo "no such compiler: $comp"
-    exit 1
+    echo "*** (SetCompiler) no such compiler: $comp"
+    return 1
   fi
 
   [ "$debug" = "YES" ] && echo "SetCompiler: $compiler"
@@ -229,15 +232,10 @@ do
   Rules "FORTRAN_COMPILER=$comp"
 
   SetCompiler $comp
+  [ $? -ne 0 ] && continue
 
   make compiler_version > /dev/null 2>&1
-
-  if [ $? -ne 0 ]; then
-    echo "*** compiler $comp is not available..."
-    continue
-  else
-    echo "compiler $comp is available..."
-  fi
+  [ $? -ne 0 ] && echo "*** compiler $comp is not available..." && continue
 
   #CompTest
   #continue

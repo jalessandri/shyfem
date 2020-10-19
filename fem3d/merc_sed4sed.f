@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 2018-2019  Ginevra Rosat
+!    Copyright (C) 2018,2020  Donata Melaku Canu
+!    Copyright (C) 2019  Celia Laurent
 !
 !    This file is part of SHYFEM.
 !
@@ -27,8 +29,8 @@
 !
 ! revision log :
 !
-! 30.05.2018	dmc&gr	integration of the 0d module into SHYFEM
-! 15.07.2019	gr&clc	sediment active layer added (Carniello et al., 2012)
+! 30.05.2018	dmc&gir	integration of the 0d module into SHYFEM
+! 15.07.2019	gir&clc	sediment active layer added (Carniello et al., 2012)
 ! 24.02.2020    dmc	read variable tCE(k) according to the element type
 !
 ! notes :

@@ -1,21 +1,23 @@
 
 #------------------------------------------------------------------------
 #
-#    Copyright (C) 1985-2018  Georg Umgiesser
+#    Copyright (C) 1985-2020  Georg Umgiesser
 #
 #    This file is part of SHYFEM.
 #
 #------------------------------------------------------------------------
 
-# general makefile for dir fem
+#---------------------------------------------------------------
 #
+# general makefile for shyfem base directory
+#
+#---------------------------------------------------------------
+
 #---------------------------------------------------------------
 #
 # targets that should be in all Makefiles of SUBDIRS:
 #
-# clean cleanall 
-#
-# really necessary are only: fem clean cleanall
+# fem clean cleanall 
 #
 #---------------------------------------------------------------
 
@@ -111,7 +113,7 @@ default:
 all: fem doc
 	@cd fem3d; make compatibility
 
-fem: checkv directories links test_executable check_server
+fem: checkv directories links test_executable check_server check_compiler
 	@$(FEMBIN)/recursivemake $@ $(FEMDIRS)
 	@femcheck/check_compilation.sh -quiet
 
@@ -166,6 +168,10 @@ links:
 	@-ln -sf femlib lib
 	@if [ ! -d ./femregress ]; then ln -fs femdummy femregress; fi
 
+ctags:
+	@echo "making tags file..."
+	ctags -R .
+
 #---------------------------------------------------------------
 # cleaning
 #---------------------------------------------------------------
@@ -175,10 +181,10 @@ cleanlocal:
 	-rm -f changed_zip.zip
 	-rm -f *~
 	-rm -f *.tmp *.bak *.out
+	-rm -f *.revnew
 	-rm -f ggg hhh
 	-rm -f errout.dat a.out plot.ps
 	-rm -f .memory
-	-rm -f CHECKLOG
 
 clean: cleanlocal
 	$(FEMBIN)/recursivemake $@ $(SUBDIRS)
@@ -218,7 +224,7 @@ help:
 	@echo "changed             finds files changed after installation"
 	@echo "changed_zip         zips files changed after installation"
 
-first_time:
+first_time: links
 	@echo 'Recommended use if you see shyfem for the first time:'
 	@echo '   make help            gives overview of possible commands'
 	@echo 'Commands to run only for the first time:'
@@ -284,6 +290,21 @@ changed_zip:
 
 advance_time:
 	touch -d "`date -R -r VERSION` + 5 seconds" VERSION
+
+#--------------------------------------------------------
+# copyright and revision log
+#--------------------------------------------------------
+
+FEMCOPY = $(FEMDIR)/femcheck/copyright
+
+check_files:
+	@$(FEMCOPY)/copyright.sh -check_all
+
+check_copyright:
+	@$(FEMCOPY)/copyright.sh -check_rev --updatecopy
+
+update_copyright:
+	@$(FEMCOPY)/copyright.sh -check_rev --updatecopy --write
 
 #--------------------------------------------------------
 # installing
@@ -460,6 +481,10 @@ show_server:
 #---------------------------------------------------------------
 # check if routines are executable
 #---------------------------------------------------------------
+
+check_compiler:
+	@femcheck/check_compiler.sh "$(CC) $(CINFOFLAGS)" \
+		"$(F77) $(FINFOFLAGS)"
 
 test_executable:
 	@if [ ! -x fembin/make_executable.sh ]; then make make_executable; fi

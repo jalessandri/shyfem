@@ -1,7 +1,12 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 1995,1997-2020  Georg Umgiesser
+!    Copyright (C) 2004,2008  Andrea Cucco
+!    Copyright (C) 2006,2008,2011-2012,2014-2015,2014-2015  Christian Ferrarin
+!    Copyright (C) 2019  Christian Ferrarin
+!    Copyright (C) 2007,2013  Debora Bellafiore
+!    Copyright (C) 2012  Aaron Roland
 !
 !    This file is part of SHYFEM.
 !
@@ -158,6 +163,8 @@ c 17.10.2019	ggu	no call to bfm_write, is done inside subroutine
 c 06.11.2019	ggu	femelab eliminated
 c 03.04.2020	ggu	write real start and end time of simulation
 c 09.04.2020    ggu     run bfm through bfm_run()
+c 21.05.2020    ggu     better handle copyright notice
+c 04.06.2020    ggu     debug_output() substituted with shympi_debug_output()
 c
 c*****************************************************************
 
@@ -222,6 +229,7 @@ c local variables
         double precision atime_start,atime_end
         character*20 aline_start,aline_end
 	character*80 strfile
+	character*80 mpi_code,omp_code
 
 	real getpar
 
@@ -431,7 +439,8 @@ c-----------------------------------------------------------
 
 	call check_parameter_values('before main')
 
-	if( bdebout ) call debug_output(dtime)
+	!if( bdebout ) call debug_output(dtime)
+	if( bdebout ) call shympi_debug_output(dtime)
 
         !call test_forcing(dtime,dtend)
 
@@ -497,7 +506,9 @@ c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
            call write_wwm
 	   call ww3_loop
 
-	   if( bdebout ) call debug_output(dtime)
+	   call mpi_debug(dtime)
+	   !if( bdebout ) call debug_output(dtime)
+	   if( bdebout ) call shympi_debug_output(dtime)
 	   bfirst = .false.
 
 	end do
@@ -516,6 +527,8 @@ c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP MASTER
 	nthreads = 1
 !$	nthreads = omp_get_num_threads()
+	call openmp_parallel_code(omp_code)
+	print *,"TYPE OF OMP CODE            = ",trim(omp_code)
         print *,"NUMBER OF OMP THREADS USED  = ",nthreads
 !$OMP END MASTER
 !$OMP END PARALLEL
@@ -534,6 +547,8 @@ c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	print *,"TIME TO SOLUTION PARALLEL REGION (CPU) = "
      +				,time2-time3,my_id
 
+	call shympi_parallel_code(mpi_code)
+	print *,"TYPE OF MPI CODE            = ",trim(mpi_code)
 	print *,"NUMBER OF MPI THREADS USED  = ",n_threads
 
         mpi_t_end = shympi_wtime()
@@ -590,29 +605,46 @@ c*****************************************************************
 
         character*(*) strfile
         logical bdebug,bdebout,bmpirun
+        logical bquiet,bsilent
 
         character*80 version
-
-	if( shympi_is_master() ) then
-	  call shyfem_copyright('shyfem - 3D hydrodynamic SHYFEM routine')
-	end if
 
 	call get_shyfem_version_and_commit(version)
         call clo_init('shyfem','str-file',trim(version))
 
         call clo_add_info('runs the 3D shyfem routine')
 
-        call clo_add_option('debug',.false.,'enable debugging')
-        call clo_add_option('debout',.false.
-     +			,'writes debugging information to file')
+	call clo_add_sep('general options:')
+        call clo_add_option('quiet',.false.,'do not be verbose')
+        call clo_add_option('silent',.false.,'be silent')
+
+	call clo_add_sep('mpi options:')
         call clo_add_option('mpi',.false.
      +			,'runs in MPI mode (experimental)')
 
+	call clo_add_sep('debug options:')
+        call clo_add_option('debug',.false.,'enable debugging')
+        call clo_add_option('debout',.false.
+     +			,'writes debugging information to file')
+
         call clo_parse_options
+
+        call clo_get_option('quiet',bquiet)
+        call clo_get_option('silent',bsilent)
+
+        call clo_get_option('mpi',bmpirun)
 
         call clo_get_option('debug',bdebug)
         call clo_get_option('debout',bdebout)
-        call clo_get_option('mpi',bmpirun)
+
+        if( bsilent ) bquiet = .true.
+
+	if( shympi_is_master() ) then
+         call shyfem_set_short_copyright(bquiet)
+         if( .not. bsilent ) then
+	  call shyfem_copyright('shyfem - 3D hydrodynamic SHYFEM routine')
+         end if
+	end if
 
         call clo_check_files(1)
         call clo_get_file(1,strfile)
@@ -808,6 +840,64 @@ c*****************************************************************
 
 c*****************************************************************
 c*****************************************************************
+c*****************************************************************
+
+	subroutine shympi_debug_output(dtime)
+
+	use shympi_debug
+	use mod_depth
+	use mod_gotm_aux
+	use mod_ts
+	use mod_hydro_baro
+	use mod_hydro_vel
+	use mod_hydro
+	use mod_internal
+	use levels
+	use basin
+
+	implicit none
+
+	logical bdebug
+	integer it
+	integer, save :: itout
+	integer, save :: icall = 0
+	double precision dtime
+
+	bdebug = .true.
+	bdebug = .false.
+	itout = 300
+
+	it = nint(dtime)
+	bdebug = ( mod(it,itout) == 0 )
+	!bdebug = ( dtime >= 1000 )
+
+	if( .not. bdebug ) return
+
+	write(6,*) 'shympi_debug_output: writing records'
+
+	if( icall == 0 ) then
+	  call shympi_write_debug_init
+	  call shympi_write_debug_time(dtime)
+	  call shympi_write_debug_record('ipv',ipv)
+	  call shympi_write_debug_record('ipev',ipev)
+	  call shympi_write_debug_record('xgv',xgv)
+	  call shympi_write_debug_record('ygv',ygv)
+	  call shympi_write_debug_record('fcorv',fcorv)
+	else
+	  call shympi_write_debug_time(dtime)
+	end if
+
+	icall = icall + 1
+
+	!call shympi_write_debug_record('zenv',zenv)
+	call shympi_write_debug_record('znv',znv)
+	call shympi_write_debug_record('unv',unv)
+	call shympi_write_debug_record('vnv',vnv)
+
+	call shympi_write_debug_final
+
+	end
+
 c*****************************************************************
 
 	subroutine debug_output(dtime)
@@ -1089,6 +1179,82 @@ c*****************************************************************
         end do
 
         stop 'end of testing forcing'
+
+        end
+
+c*****************************************************************
+
+	subroutine mpi_debug(dtime)
+
+	use basin
+	use shympi
+
+        implicit none
+
+        double precision dtime
+
+	integer nn,ne,i
+	integer, allocatable :: ipglob(:)
+	integer, allocatable :: ieglob(:)
+	real, allocatable :: rpglob(:)
+	real, allocatable :: reglob(:)
+	real, allocatable :: rp(:)
+	real, allocatable :: re(:)
+	integer, save :: icall = 0
+
+	integer ipint
+
+	icall = 1
+	if( icall > 0 ) return
+
+	icall = icall + 1
+
+	nn = nkn_global
+	ne = nel_global
+	allocate(ipglob(nn),ieglob(ne))
+	allocate(rpglob(nn),reglob(ne))
+	allocate(rp(nkn),re(nel))
+
+	rp = ipv
+	re = ipev
+	write(6,*) nkn_domains
+	write(6,*) nel_domains
+	flush(6)
+	write(6,*) 'exchanging ipv',my_id,size(ipv)
+	call shympi_exchange_array(ipv,ipglob)
+	call shympi_exchange_array(ipev,ieglob)
+	call shympi_exchange_array(rp,rpglob)
+	call shympi_exchange_array(re,reglob)
+
+	if( .not. shympi_is_master() ) return
+
+	write(77,*) dtime
+	write(77,*) nn
+	write(77,*) ipglob
+	write(77,*) ne
+	write(77,*) ieglob
+
+	write(78,*) dtime
+
+	write(78,*) 'node: ',nn
+	do i=1,nn,333
+	write(78,*) i,ipglob(i)
+	end do
+
+	write(78,*) 'elem: ',ne
+	do i=1,ne,333
+	write(78,*) i,ieglob(i)
+	end do
+
+	write(78,*) 'rnode: ',nn
+	do i=1,nn,333
+	write(78,*) i,rpglob(i)
+	end do
+
+	write(78,*) 'relem: ',ne
+	do i=1,ne,333
+	write(78,*) i,reglob(i)
+	end do
 
         end
 

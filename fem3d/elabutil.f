@@ -1,7 +1,8 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 2015-2020  Georg Umgiesser
+!    Copyright (C) 2017-2018  Christian Ferrarin
 !
 !    This file is part of SHYFEM.
 !
@@ -77,6 +78,7 @@
 ! 13.12.2019    ggu     new option -checkrain (bcheckrain)
 ! 28.01.2020    ggu     new option -vorticity (bvorticity)
 ! 06.03.2020    ggu     -checkdt also for ext and flx files
+! 21.05.2020    ggu     better handle copyright notice
 !
 !************************************************************
 
@@ -136,6 +138,7 @@
         character*80, save :: factstring	= ' '
 
         character*80, save :: regstring		= ' '
+        character*80, save :: rbounds		= ' '
 	integer, save :: regexpand		= -1
 
 	logical, save :: baverbas		= .false.
@@ -476,13 +479,16 @@
 
         call clo_add_sep('regular output file options')
 
-        call clo_add_option('reg rstring',' ','regular interpolation')
-        call clo_add_option('regexpand iexp',-1,'expand regular grid')
+	call clo_add_option('reg rstring',' ','regular interpolation')
+	call clo_add_option('resample bounds',' ','resample regular grid')
+	call clo_add_option('regexpand iexp',-1,'expand regular grid')
 
 	call clo_add_com('    rstring is: dx[,dy[,x0,y0,x1,y1]]')
 	call clo_add_com('    if only dx is given -> dy=dx')
 	call clo_add_com('    if only dx,dy are given -> bounds computed')
+	call clo_add_com('    bounds is: x0,y0,x1,y1')
 	call clo_add_com('    iexp>0 expands iexp cells, =0 whole grid')
+	call clo_add_com('    resample should be used with regexpand')
 
 	end subroutine elabutil_set_reg_options
 
@@ -665,6 +671,7 @@
 	if( bshowall .or. bfemfile .or. bshyfile .or. blgrfile ) then
           call clo_get_option('reg',regstring)
           call clo_get_option('regexpand',regexpand)
+          call clo_get_option('resample',rbounds)
 	end if
 
 	if( bshowall .or. bshyfile ) then
@@ -721,6 +728,7 @@
 	  stop 'error stop elabutil_get_options: unknown type'
 	end if
 
+	call shyfem_set_short_copyright(bquiet)
         if( .not. bsilent ) then
 	  flow = ftype
 	  call to_lower(flow)

@@ -1,7 +1,7 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 2015-2019  Georg Umgiesser
 !
 !    This file is part of SHYFEM.
 !
@@ -155,6 +155,7 @@
           allocate(bnd(nbvdim,nbb))
           allocate(bnd_file(nbfdim,nbb))
 	  bnd = 0
+	  bnd_file = ' '
 	end if
 
 	allocate(bnd_aux(nbvdim,nbb))

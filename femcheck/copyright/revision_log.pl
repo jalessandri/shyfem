@@ -2,7 +2,7 @@
 
 #------------------------------------------------------------------------
 #
-#    Copyright (C) 1985-2018  Georg Umgiesser
+#    Copyright (C) 1985-2020  Georg Umgiesser
 #
 #    This file is part of SHYFEM.
 #
@@ -38,27 +38,23 @@ $::copyright_standard = "Copyright (C) 1985-2020  Georg Umgiesser";
 $::copyright_full = "$shycopy/copyright_notice.txt";
 $::copyright_short = "$shycopy/copyright_short.txt";
 
-$::warn = 0;			#warn for revision out of revision log section
-$::obsolete = 0;		#check for obsolete date in text
-
-$::extract = 0 unless $::extract;	#extract revlog to revlog.tmp
 $::check = 0 unless $::check;		#checks files
 $::gitrev = 0 unless $::gitrev;		#uses gitrev for revision log
+$::gitmerge = 0 unless $::gitmerge;	#merges gitrev for revision log
 $::stats = 0 unless $::stats;		#uses gitrev for revision log
 $::crewrite = 0 unless $::crewrite;	#re-writes c revision log
-$::updatecopy = 0 unless $::updatecopy;	#re-writes copyright section
 $::substdev = 0 unless $::substdev;	#substitute developer names
 $::onlycopy = 0 unless $::onlycopy;     #only check copyright
+$::updatecopy = 0 unless $::updatecopy;	#re-writes copyright section
 $::newcopy = 0 unless $::newcopy;       #substitute new copyright
 
 $::copyright = 0;
 $::shyfem = 0;
 $::manual = 0;
+$::copyatend = 0;
 $::cstyle_revlog = 0;
 
 $::debug = 0;
-
-#print STDERR "reading file $::file\n";
 
 #--------------------------------------------------------------
 
@@ -75,6 +71,8 @@ $::write_file = 0 if $::onlycopy;
 
 exit 0 if $::type eq "binary";
 exit 0 if $::type eq "image";
+
+#print STDERR "reading file $::file with type $::type\n";
 
 #--------------------------------------------------------------
 #--------------------------------------------------------------
@@ -94,6 +92,7 @@ if( $::crewrite ) {
 }
 
 check_revlog_dates($rev);
+check_copyright($copy);
 
 my $devs = count_developers($rev);
 if( ( $::updatecopy or $::newcopy ) and not $::manual ) {
@@ -114,7 +113,7 @@ if( ( $::gitrev or $::gitmerge ) and ( not $::manual ) ) {
 if( $::stats ) {
   stats_file($::file,$rev,$devs);
 } elsif( $::write_file ) {
-  write_file("$::file.new",$header0,$copy,$header1,$rev,$header2,$body);
+  write_file("$::file.revnew",$header0,$copy,$header1,$rev,$header2,$body);
 }
 
 my $error = $::copyerror;
@@ -131,6 +130,7 @@ sub extract_header
   my @body = ();
 
   my $cc = quotemeta($::comchar);
+  $cc = "" if $::type eq "special";
 
   my $in_header = 1;
 
@@ -180,9 +180,10 @@ sub extract_copy
 
   foreach (@$header) {
     #print "$in_copy: $_\n";
-    if( /^..------------------------------/ or
-	/^\s*.\*\*\*\*\*/ or
-	/^\% \*\*\*\*\*/ ) {
+    if( /^..------------------------------/
+	or /^\s*.\*\*\*\*\*/
+	#or /^\% \*\*\*\*\*/
+	) {
       $in_copy++;
       if( $in_copy < 3 ) {
         push(@copy,$_);
@@ -202,6 +203,15 @@ sub extract_copy
     }
   }
 
+  if( $::copyright ) {
+    if( @header0 > 10 ) {
+      if( $::type ne "special" ) {
+        print STDERR "    $::file has copyright at end of file\n";
+      }
+      $::copyatend = 1;
+    }
+  }
+
   $::copyerror = 0;
 
   if( $::copyright ) {
@@ -213,7 +223,7 @@ sub extract_copy
         print STDERR "*** copyright notice not finished in file $::file\n";
         $::copyerror++;
       }
-      if( $::shyfem == 0 and $::type ne "ps" ) {
+      if( $::shyfem == 0 ) {
         print STDERR "*** missing shyfem line in file $::file\n";
         $::copyerror++;
       }
@@ -354,7 +364,21 @@ sub handle_copyright
 {
   my ($rev,$copy) = @_;
 
-  $copy = [] if $::newcopy;			#make a new copyright
+  if( check_copyright($copy) ) {	# this is true if copy and unknown type
+    print "    not changing copyright...\n";
+    return $copy;
+  }
+
+  if( $::newcopy and $::copyatend ) {
+    print "*** $::file has copyright at end of file... use --updatecopy\n";
+    return $copy;
+  }
+
+  if( $::updatecopy ) {
+    return $copy unless @$copy;			#do not update if no copyright
+  } elsif( $::newcopy ) {
+    $copy = [];					#make a new copyright
+  }
 
   if( not @$copy ) {				# no copyright - integrate
     $copy = integrate_copyright();
@@ -418,6 +442,19 @@ sub substitute_copyright
   }
 
   return \@cnew;
+}
+
+sub check_copyright
+{
+  my ($copy) = @_;
+
+  return 0 if $::manual;
+
+  if( @$copy and $::type eq "unknown" ) {
+    print "*** $::file has copyright but has unknown type\n";
+    return 1;
+  }
+  return 0;
 }
 
 #--------------------------------------------------------------

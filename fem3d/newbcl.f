@@ -1,7 +1,9 @@
 
 !--------------------------------------------------------------------------
 !
-!    Copyright (C) 1985-2018  Georg Umgiesser
+!    Copyright (C) 1994-1995,1998,2001-2005,2007-2020  Georg Umgiesser
+!    Copyright (C) 2007,2009,2012  Debora Bellafiore
+!    Copyright (C) 2012  Christian Ferrarin
 !
 !    This file is part of SHYFEM.
 !
@@ -149,6 +151,7 @@ c 21.05.2019	ggu	changed VERS_7_5_62
 c 14.02.2020	ggu	nudging enhanced with reading of tau values
 c 05.03.2020	ggu	finished new nudging routines
 c 27.03.2020	ggu	cleaned new nudging routines
+c 17.09.2020    ggu     renamed sigma to sigma_stp
 c
 c notes :
 c
@@ -600,7 +603,7 @@ c local
 	real salt
 	double precision dresid
 c functions
-	real sigma
+	real sigma_stp
 
 	rho0 = rowass
 	sigma0 = rho0 - 1000.
@@ -638,7 +641,7 @@ c functions
 	    pres = 1.e-5 * ( presbt + presbc )	!pressure in bars (BUG)
 	
 	    salt = max(0.,saltv(l,k))
-	    rhop = sigma(salt,tempv(l,k),pres) - sigma0
+	    rhop = sigma_stp(salt,tempv(l,k),pres) - sigma0
 	    call set_rhomud(k,l,rhop)
 
 	    nresid = nresid + 1
@@ -696,7 +699,7 @@ c local
 	real eps
 	double precision dresid
 c functions
-	real sigma
+	real sigma_stp
 
 	iter_max = 10
 	eps = 1.e-7
@@ -737,7 +740,7 @@ c functions
 	    pres = 1.e-5 * ( presbt + presbc )	!pressure in bars (BUG)
 	
 	    salt = max(0.,saltv(l,k))
-	    rhop = sigma(salt,tempv(l,k),pres) - sigma0
+	    rhop = sigma_stp(salt,tempv(l,k),pres) - sigma0
 	    call set_rhomud(k,l,rhop)
 
 	    dresid = dresid + (rhov(l,k)-rhop)**2
