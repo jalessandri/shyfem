@@ -77,6 +77,9 @@ CheckExeType()
   for file in $files
   do
     [ -d $file ] && continue
+    IsBinary $file
+    [ $? -ne 0 ] && echo "skipping binary file: $file " && continue
+    #if IsBinary $file; then echo "skipping binary file: $file "; continue; fi
     first=$( head -1 $file )
     if [[ $first =~ '#!/'.* ]]; then
       if [ ! -x $file ]; then
@@ -111,8 +114,6 @@ CheckExeType()
 
 CheckTexType()
 {
-  # this checks tex files
-
   echo "================================================"
   echo "--- CheckTexType: checking tex files"
   echo "================================================"
@@ -136,8 +137,6 @@ CheckTexType()
 
 CheckStrType()
 {
-  # this checks tex files
-
   echo "================================================"
   echo "--- CheckStrType: checking str files"
   echo "================================================"
@@ -161,8 +160,6 @@ CheckStrType()
 
 CheckCType()
 {
-  # this checks tex files
-
   echo "================================================"
   echo "--- CheckCType: checking c files"
   echo "================================================"
@@ -190,8 +187,6 @@ CheckCType()
 
 CheckFortranType()
 {
-  # this checks tex files
-
   echo "================================================"
   echo "--- CheckFortranType: checking fortran files"
   echo "================================================"
@@ -221,8 +216,6 @@ CheckFortranType()
 
 CheckSpecialType()
 {
-  # this checks tex files
-
   echo "================================================"
   echo "--- CheckSpecialType: checking special files"
   echo "================================================"
@@ -294,6 +287,24 @@ MakeFilesFromExt()
   done
 }
 
+FilterExtensions()
+{
+  local filtered=""
+
+  for ext
+  do
+    ext=$( echo $ext | sed -e 's/^\.//' )	#eliminate dot
+    ext="\\.$ext"
+    aux=$( echo $files | tr ' ' '\n' | grep "$ext$" )
+    filtered="$filtered $aux"
+    aux=$( echo $files | tr ' ' '\n' | grep -v "$ext$" )
+    files=$aux
+  done
+
+  #filtered=$( echo $filtered | tr '\n' ' ' )
+  #echo "filtered files: $filtered"
+}
+
 FilterFiles()
 {
   for pattern
@@ -326,6 +337,33 @@ FilterDirs()
 #---------------------------------------------------------------
 #---------------------------------------------------------------
 #---------------------------------------------------------------
+
+IsBinary()
+{
+  local file=$1
+
+  local filename=$(basename -- "$file")
+  local extension="${filename##*.}"
+
+  [ $extension = "pdf" ] && return 0
+  [ $filename = "CR" ] && return 0
+
+  grep -qI . $1
+
+  local status=$?
+  if [ $status -ne 0 ]; then
+    :
+    #echo "  *** file might be binary: $file"
+  else
+    :
+  fi
+  return $status
+}
+
+GetFileType()
+{
+  $copydir/find_file_type.pl $1
+}
 
 DetermineFileType()
 {
@@ -374,6 +412,8 @@ HandleCopyright()
   for file in $files
   do
     [ -d $file ] && continue
+    IsBinary $file
+    [ $? -ne 0 ] && echo "skipping binary file: $file " && continue
     [ $findtype = YES ] && type=$( GetFileType $file )
     if [ "$type" = "script" ]; then
       first=$( head -1 $file )
@@ -422,6 +462,8 @@ DoCopyright()
   FilterFiles /INPUT/
   FilterFiles /oceanlib/ /oceanlib_txt/
   FilterFiles /Mail-Sender-0.8.13/ /codepage/ /GD
+  FilterExtensions pdf ps eps jpg gif png
+  FilterExtensions dat grd
 
   for file in $files
   do
@@ -450,7 +492,6 @@ DoCopyright()
   files=$newfiles
   echo "integrating copyright in files"
   HandleCopyright
-  
 }
 
 ShowStats()
@@ -566,6 +607,7 @@ FullUsage()
   echo "  --gui              if files are changed show in gui diff"
   echo "  --write            really write changes to file"
   echo "  --keep             keep changed files (.revnew) for inspection"
+  echo "  for general check use -check_rev, -check_all, -check_copy"
 }
 
 #---------------------------------------------------------------
@@ -608,7 +650,7 @@ elif [ -z "$what" ]; then
   Usage; exit 0
 fi
 
-#echo "running in directory: $PWD"
+echo "looking for files in directory: $PWD"
 
 #---------------------------------------------------------------
 

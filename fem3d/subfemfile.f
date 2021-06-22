@@ -73,6 +73,7 @@ c 05.12.2017	ggu	changed VERS_7_5_39
 c 03.04.2018	ggu	changed VERS_7_5_44
 c 16.02.2019	ggu	changed VERS_7_5_60
 c 29.03.2020	ggu	better ntype handling
+c 11.11.2020	ggu	bug fix for nvers < 3 (define lmax in data read)
 c
 c notes :
 c
@@ -126,11 +127,11 @@ c np		number of horizontal points given
 c lmax		maximum number of layers given
 c nvar		number of variables in time record
 c ntype		type of data, defines extra data to follow
-c date		reference date (integer)
-c time		reference time (integer)
+c date		reference date (integer, YYYYMMDD)
+c time		reference time (integer, hhmmss)
 c hlv		layer depths (the bottom of each layer is given)
 c string 	string with description of data
-c hd(k)		total depth in node k
+c hd(k)		total depth in node k (-999 if unknown)
 c data(l,k)	data for variable at level l and node k
 c lm		total number of vertical data provided for point k
 c k,l		index for horizontal/vertical dimension
@@ -987,6 +988,7 @@ c reads data of the file
 
 	ierr = 0
 	npp = np
+	lmax = nlvddi
 
 	if( iformat == 1 ) then
 	  read(iunit,'(a)',err=13) text

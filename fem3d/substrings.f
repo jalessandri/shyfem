@@ -61,6 +61,7 @@
 ! 11.04.2020	ggu	review of directional strings
 ! 17.04.2020	ggu	new routine strings_meteo_convention()
 ! 18.05.2020	ggu	do not attach direction to file name
+! 22.04.2021	ggu	new routines checking and populating strings
 !
 ! contents :
 !
@@ -152,7 +153,7 @@
 
 	end type entry
 
-        logical, save, private :: bpopulate = .true.    !must still populate?
+        logical, save, private :: bpopulated = .false.    !is populated?
         integer, save, private :: idlast = 0
         integer, save, private :: ndim = 0
         integer, save, private :: ivarmax = 0
@@ -242,8 +243,9 @@
 	character(len=len(name)) :: string
         logical bdebug
 	logical compare_svars
+        character*80 name_aux
 
-	call populate_strings
+	call check_populate
 
 	strings_get_id_by_name = 0
         if( name == ' ' ) return
@@ -258,7 +260,8 @@
 	end do
 	if( id > idlast ) id = ids
 
-        bdebug = ( string(1:6) == 'transp' )
+        name_aux = string
+        bdebug = ( name_aux(1:6) == 'transp' )
         bdebug = .false.
         if( bdebug ) then
           write(6,*) '-----------------------------'
@@ -285,7 +288,7 @@
 	integer id,ivmin,ivmax
 	logical bdebug
 
-	call populate_strings
+	call check_populate
 
 	bdebug = ivar == -1
 	bdebug = .false.
@@ -315,7 +318,7 @@
 
 	integer id
 
-	call populate_strings
+	call check_populate
 
 	full = ' '
 	isub = 0
@@ -340,7 +343,7 @@
 
 	integer id
 
-	call populate_strings
+	call check_populate
 
 	short = ' '
 	isub = 0
@@ -607,7 +610,7 @@
 
         integer, allocatable :: icount(:)
 
-        call populate_strings
+        call check_populate
 
         allocate(icount(0:ivarmax))
         icount = 0
@@ -672,6 +675,36 @@
         srings_exists_id = ( id >= 1 .and. id <= idlast )
 
         end function srings_exists_id
+
+!****************************************************************
+
+        subroutine check_populate
+
+	if( .not. bpopulated ) then
+	  write(6,*) 'strings have not been set up'
+	  write(6,*) 'call populate_strings() needed'
+	  stop 'error stop check_populate: not populated'
+	end if
+
+        end subroutine check_populate
+
+!****************************************************************
+
+        subroutine set_populate
+
+	bpopulated = .true.
+
+        end subroutine set_populate
+
+!****************************************************************
+
+        function is_populated()
+
+	logical is_populated
+
+	is_populated = bpopulated
+
+        end function is_populated
 
 !================================================================
 	end module shyfem_strings
@@ -1049,7 +1082,7 @@ c pops direction and unit and returns cleaned string
 !****************************************************************
 !****************************************************************
 
-	recursive subroutine populate_strings
+	subroutine populate_strings
 
 ! populates string information
 !
@@ -1059,10 +1092,8 @@ c pops direction and unit and returns cleaned string
 
 	implicit none
 
-	logical, save :: bread = .false.
-
-	if( bread ) return
-	bread = .true.
+	if( is_populated() ) return
+        call set_populate
 
 !---------------------------------------------------------------------
 
@@ -1126,6 +1157,7 @@ c pops direction and unit and returns cleaned string
 	call strings_add_new('lagrangian type',83)
 	call strings_add_new('lagrangian custom',84)
 	call strings_add_new('ice cover',85)
+	call strings_add_new('ice thickness',86)
 	call strings_add_new('relaxation time',94)
 	call strings_add_new('time step',95)
 	call strings_add_new('time over threshold',97)
@@ -1214,7 +1246,8 @@ c pops direction and unit and returns cleaned string
 	call strings_set_short(82,'lagdep')
 	call strings_set_short(83,'lagtyp')
 	call strings_set_short(84,'lagcus')
-	call strings_set_short(85,'ice')
+	call strings_set_short(85,'icecover')
+	call strings_set_short(86,'icethick')
 	call strings_set_short(94,'relaxtime')
 	call strings_set_short(95,'timestep')
 	call strings_set_short(97,'timeot')

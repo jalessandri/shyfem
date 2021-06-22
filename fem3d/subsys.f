@@ -222,6 +222,9 @@ c 16.02.2020	ggu	itunit not supported anymore
 c 05.03.2020	ggu	documentation upgraded
 c 09.03.2020	ggu	more documentation upgraded, spell check
 c 27.03.2020	ggu	documentation on ibarcl and nudging
+c 11.11.2020	ggu	new parameter idtice and icemod
+c 30.03.2021	ggu	new parameters idtdbg,itmdbg
+c 23.04.2021	clr	new paramters petsc_zcfg and amgx_zcfg
 c
 c************************************************************************
 
@@ -390,6 +393,16 @@ c			the stability index for debug reasons.
 
 	call addpar('idtstb',0.)
 	call addpar('itmstb',-1.)
+
+c |idtdbg|, |itmdbg|	Time step and start time for writing a debug file
+c			with values of various variables. In order to
+c			use this feature you have to run |shyfem| with
+c			the command line option |-debout|. Please be
+c			aware that this feature will create extremely
+c			big files. Use at you own risk.
+
+	call addpar('idtdbg',0.)
+	call addpar('itmdbg',-1.)
 
 c |idtvol|, |itmvol|	Time step and start time for writing to file VOL,
 c			the file containing volume information of areas
@@ -698,10 +711,9 @@ c		\item[3] Following A. Gill
 c		\item[4] Following Dejak
 c		\item[5] As in the GOTM model
 c		\item[6] Using the COARE3.0 module
-c		\item[7] Read sensible, latent and long-wave fluxes from file
 c		\item[7] Read heat fluxes directly from file. The columns
 c		in the data file must be "time srad qsens qlat qlong".
-c		\item[8] Heat fluxes as Pettenuzzo et al., 2010
+c		\item[8] MFS heat fluxes as Pettenuzzo et al., 2010
 c		\end{description}
 c		Except when |iheat| is 7, the time series file has
 c		the columns "time srad airt rhum cc".
@@ -1161,6 +1173,8 @@ cc rain
 cc ice
 
 	call addpar('iaicef',-99.)	!area code for ice free condition
+	call addpar('icemod',0.)	!use ice model?
+	call addpar('idtice',0.)	!time step for ice model
 
 	end
 
@@ -2789,6 +2803,15 @@ cc non-documented -> try first	HACK	-> initial conditions
         call addfnm('biosin',' ')
         call addfnm('toxi',' ')
         call addfnm('mercin',' ')	!mercury
+
+
+c |petsc_zcfg|	Name of file containing the configuration of 
+c		PETSc solver for zeta
+c |amgx_zcfg|	Name of file containing the configuration of 
+c		AmgX solver for zeta
+
+	call addfnm('petsc_zcfg',' ')
+	call addfnm('amgx_zcfg',' ')
 
 cc ACQUBC
 

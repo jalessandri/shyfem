@@ -1,11 +1,38 @@
 #!/bin/bash
 #
+#------------------------------------------------------------------------
+#
+#    Copyright (C) 1985-2020  Georg Umgiesser
+#
+#    This file is part of SHYFEM.
+#
+#------------------------------------------------------------------------
+#
 # examples and usage of advanced features of bash
 #
-#-----------------------------------------------------------
+#------------------------------------------------------------------------
+
+func()
+{
+  return $1
+}
+
+If()
+{
+  echo "================================="
+  echo "test if"
+  echo "================================="
+
+  if func 0; then echo "ok"; else echo "false"; fi
+  if func 1; then echo "ok"; else echo "false"; fi
+}
 
 Loop()
 {
+  echo "================================="
+  echo "test loop"
+  echo "================================="
+
   echo "----------------Loop over range---------------------"
   for id in {1..5};
   do
@@ -15,6 +42,10 @@ Loop()
 
 Array()
 {
+  echo "================================="
+  echo "test array"
+  echo "================================="
+
   MyArray=( HTML Javascript CSS JQuery Bootstrap )
  
   echo "----------Print 5 values individually---------------"
@@ -45,8 +76,13 @@ Array()
   echo ${allRuntimes[*]}
   echo "array size: ${#allThreads[@]}"
 
-  echo "--------------------Pop one item--------------------"
+  echo "------------------Shift first item------------------"
   allThreads=("${allThreads[@]:1}")
+  echo ${allThreads[*]}
+  echo "array size: ${#allThreads[@]}"
+
+  echo "-------------------Pop last item--------------------"
+  allThreads=("${allThreads[@]:0:${#allThreads[@]}-1}")
   echo ${allThreads[*]}
   echo "array size: ${#allThreads[@]}"
 
@@ -69,35 +105,59 @@ Array()
 
 Associative()
 {
+  echo "================================="
+  echo "test associative array"
+  echo "================================="
+
   declare -A assArray1
+
   assArray1[fruit]=Mango
   assArray1[bird]=Cockatail
   assArray1[flower]=Rose
   assArray1[animal]=Tiger
 
-  echo ${assArray1[bird]}
-  echo ${assArray1[flower]}
-
-  for key in "${!assArray1[@]}"; do echo $key; done
+  echo "------------------show keys of array-------------------"
   echo "${!assArray1[@]}"
+  for key in "${!assArray1[@]}"
+  do 
+    echo $key
+  done
 
-  for val in "${assArray1[@]}"; do echo $val; done
+  echo "------------------show vals of array-------------------"
+  echo "${assArray1[@]}"
+  for val in "${assArray1[@]}"
+  do 
+    echo $val
+  done
+
+  echo "------------------show keys and vals of array-------------------"
+  for key in "${!assArray1[@]}"
+  do 
+    echo "$key: ${assArray1[$key]}"
+  done
+
+  echo "------------------access elements-------------------"
+  echo "bird: ${assArray1[bird]}"
+  echo "flower: ${assArray1[flower]}"
+
+  echo "------------------add new element-------------------"
+  echo "${assArray1[@]}"
+  assArray1+=([vegatable]=Potato)
   echo "${assArray1[@]}"
 
-  declare -A assArray2
-  assArray2[monitor]=Dell
-  assArray2[keyboard]=Samsung
-  assArray2[graphic]=A4Tech
+  echo "------------------delete element-------------------"
+  echo "${assArray1[@]}"
+  unset assArray1[fruit]
+  echo "${assArray1[@]}"
+  echo "fruit: ${assArray1[fruit]}"
 
-  echo "${assArray2[@]}"
-  assArray2+=([Mouse]=Logitech)
-  echo "${assArray2[@]}"
+  echo "------------------look for element-------------------"
+  echo -n "look for flower: "
+  if [ ${assArray1[flower]+_} ]; then echo "Found"; else echo "Not found"; fi
+  echo -n "look for fruit: "
+  if [ ${assArray1[fruit]+_} ]; then echo "Found"; else echo "Not found"; fi
 
-  unset assArray2[Monitor]
-  echo ${assArray2[Monitor]}
-
-  if [ ${assArray2[Monitor]+_} ]; then echo "Found"; else echo "Not found"; fi
-
+  echo "------------------delete array-------------------"
   echo "${assArray1[@]}"
   unset assArray1
   echo "${assArray1[@]}"
@@ -128,7 +188,8 @@ Test()
 {
   Loop
   Array
-  #Associative
+  Associative
+  If
 }
 
 Test

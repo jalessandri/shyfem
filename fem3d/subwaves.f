@@ -67,6 +67,7 @@
 ! 01.02.2019	ggu	bug fix in parwaves: do not compute H/P for wind == 0
 ! 10.02.2019	ggu	bug fix for FPE (GGUZ0)
 ! 12.02.2019	ccf	stress computed in substress.f
+! 11.11.2020	ggu	get_ice_all() renamed to get_ice_cover_all()
 !
 !**************************************************************
 c DOCS  START   S_wave
@@ -526,6 +527,7 @@ c local
 	  call shy_write_scalar_record2d(id,dtime,231,waveh)
 	  call shy_write_scalar_record2d(id,dtime,232,wavep)
 	  call shy_write_scalar_record2d(id,dtime,233,waved)
+	  call shy_sync(id)
 	end if
 
         end
@@ -1203,7 +1205,7 @@ c -------------------------------------------------------------------
 c normal call
 c -------------------------------------------------------------------
 
-	call get_ice_all(icecover)
+	call get_ice_cover_all(icecover)
 
 c       -------------------------------------------------------------
 c	get wind speed and direction
@@ -1359,6 +1361,7 @@ c       -------------------------------------------------------------------
 	  call shy_write_scalar_record2d(id,dtime,231,waveh)
 	  call shy_write_scalar_record2d(id,dtime,232,wavep)
 	  call shy_write_scalar_record2d(id,dtime,233,waved)
+	  call shy_sync(id)
 	end if
 
 c       -------------------------------------------------------------------

@@ -30,6 +30,7 @@
 ! 03.05.2019	ggu	written from rstinf.f
 ! 21.05.2019	ggu	changed VERS_7_5_62
 ! 20.03.2020	ggu	adjusted for new routine calls
+! 18.11.2020	ggu	bug fix for 3D simulations
 
 !******************************************************************
 
@@ -105,11 +106,21 @@
 	write(6,1001) trim(title2)
 	atime_anf = atime
 
+!-------------------------------------------------------------------
+! set vertical structure
+!-------------------------------------------------------------------
+
 	call levels_init(nknr,nelr,nlvr)
 	nlv = nlvr
-	write(6,*) 'nlv = ',nlv
+	call rst_get_vertical(nkn,nel,nlv,hlv,ilhv,ilhkv)
+	call shympi_set_hlv(nlv,hlv)
+
+!-------------------------------------------------------------------
+! initialize output files
+!-------------------------------------------------------------------
 
 	call check_name_and_extension(rstfile,name,ext)
+
 	if( bts ) then
 	  call mod_ts_init(nkn,nlv)
 	  call ts_init_output(id_ts,atime,nlvr,name)
@@ -131,7 +142,6 @@
 	open(iunit,file=rstfile,status='old',form='unformatted')
 
 	do
-
 	  call rst_read_record(iunit,atime,iflag,ierr)
 	  if( ierr .ne. 0 ) exit
 	  nread = nread + 1
